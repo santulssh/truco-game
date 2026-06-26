@@ -23,6 +23,8 @@ _team_state = {}  # Armazenar o estado de cartas da dupla
 #
 # TODO:
 #  - [ ] Adicionar uma classe representando o tipo para Card
+#  - [ ] Fix jogadas inválidas sendo registradas
+#  - [ ]
 
 global_score = [0, 0]
 
@@ -70,7 +72,7 @@ def select_card_to_play(cards, vira, play_hist, current_pos):
 # Nova classe
 # Ainda quebrado, não consegue vencer o ScoreStrategist ainda
 class ProbabilisticStrategist(Player):
-    def __init__(self, ra, name, image_path="img/none.jpg"):
+    def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
 
     def play(self, top_card, play_hist, score_hist):
@@ -118,8 +120,8 @@ class ScoreStrategist(Player):
     hand_score = (0, 0)
 
     # Se estiver dúvida sobre como começar olhe os players prontos em basic_players.py e o ReadMe
-    def __init__(self, ra, name):
-        super().__init__(ra, name)
+    def __init__(self, ra, name, image_path="img/none.jpg"):
+        super().__init__(ra, name, image_path)
 
     # Função para retornar o que você vai jogar em determinada mão
     def play(self, top_card, play_hist, score_hist):
@@ -160,22 +162,20 @@ class ScoreStrategist(Player):
         # print("global_score", global_score)
         # print("team_score", calculate_team_score())
 
-        resp = 1, None
         if self.cards and calculate_team_score() >= 1_000:
-            resp = 2, best_card
+            return 2, best_card
         elif self.cards and calculate_team_score() <= 1_000:
-            resp = 1, worst_card
+            return 1, worst_card
         elif self.cards:
-            resp = 1, self.cards[0]
+            return 1, self.cards[0]
 
-        return resp
+        return 1, None
 
     # Função para retornar o que você vai dar de resposta a trucos
     def respond(self, top_card, play_hist, score_hist):
         """Responde a pedidos de truco:
         retorna 0 (correr), 1 (aceitar) ou 2 (aumentar)
         """
-        global global_score
         resp = 0
         if calculate_team_score() >= 1_000:
             resp = 2
@@ -185,18 +185,14 @@ class ScoreStrategist(Player):
         return resp
 
 
-## A ideia È implementar duas classes. Vamos dizer que vamos inserir dois jogadores com nosso respectivos nomes ou algum nome de personagem.
-# Depois Passamos o nome de nossa Dupla
-
-
-# Função que define o nome da dupla:
 def pair_name():
-    return "ProbabilisticStrategist"  # Defina aqui o nome da sua dupla
+    # Defina o nome da dupla
+    return "ProbabilisticStrategist"
 
 
-# Função que cria a dupla:
 def create_pair():
+    # Defina a dupla de jogadores a partir da classe criada
     return (
-        ScoreStrategist("000000", "Player 1"),
+        ScoreStrategist("000000", "Player 1", "img/custom/Headphone_Cat.jpg"),
         ScoreStrategist("100000", "Player 2"),
-    )  # Defina aqui a dupla de jogadores. Deve ser uma tupla com dois jogadores.
+    )
