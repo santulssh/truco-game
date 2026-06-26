@@ -1,3 +1,13 @@
+# OBSERVAÇÃO
+
+Para iniciar o projeto, você deve primeiro instalar o `uv`. Após instalar o `uv`, você deve seguir os passos a seguir:
+
+Acesse a pasta do projeto e depois abra o terminal na pasta do projeto, certifique-se de que está no caminho certo no terminal.
+
+Agora, vamos criar um ambiente virtual para a instalação dos pacotes necessários para rodar o projeto. No terminal: `uv venv --python 3.11`, após isso, ative o ambiente virtual no seu IDE ou terminal para rodar os pacotes e a versão do Python configurada. (Acesse: [link](https://docs.astral.sh/uv/pip/environments/#__tabbed_1_2)). Por fim, sincronizar os arquivos necessários do `uv.lock` com o ambiente virtual. No terminal: `uv sync --active`. 
+
+Após todas essas etapas, caso não tenha havido nenhum problema, tente executar no terminal `uv run --active main.py -s 0 -n 1`. Caso apareça algum erro, verifique as etapas anteriores. Qualquer dúvida, chame no privado.
+
 # Truco - Simulador de Torneio
 
 **Projeto 2 do curso MC102 - Programação de Computadores**
