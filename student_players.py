@@ -5,6 +5,8 @@
 # RA #02:                               [RA #02]
 
 
+from typing import NewType
+
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 
@@ -20,10 +22,18 @@ from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 # Leia os arquivos no docs/ para saber mais.
 #
 # TODO:
-#  - [ ] Adicionar uma classe representando o tipo para Card
 #  - [ ] Fix jogadas inválidas sendo registradas
-#  - [ ]
 
+Card = NewType("Card", tuple[str, str])  # Card[rank, suit]
+# 0: Pontuação do adverśario; 1: Pontuação da dupla
+RoundScore = NewType("RoundScore", list[int])
+# round: [[RoundScore], int]
+ScoreTeam = NewType("ScoreTeam", list[list[RoundScore]])
+# hist: [pos, Card, PlayType]
+# PlayType: "NORMAL" | "ACEITOU" | "CORREU" | 3, 6, 9, 12
+CardHist = NewType("CardHist", list[list])
+
+# @Deprecated
 global_score = [0, 0]
 
 
@@ -37,13 +47,14 @@ def calculate_team_score():
     return sum(global_score)
 
 
+# @DEPRECATED
 def hand_score(cards: list[tuple] | tuple, top_card: tuple):
     count = sum([1 for card in cards if card[0] == manilha_rank(top_card[0])])
     hand_score = sum(card_value(card, top_card) for card in cards)
     return count, hand_score
 
 
-def get_cards_played(hand_history):
+def get_cards_played(hand_history: list):
     return [card for card in hand_history if card[1] is not None]
 
 
@@ -51,7 +62,17 @@ def get_hand_score(cards: list[Card], top_card: Card):
     return sum(card_value(card, top_card) for card in cards)
 
 
-def select_card_to_play(cards, vira, play_hist, current_pos):
+def is_manilha(card: Card, top_card: Card):
+    return card[0] == manilha_rank(top_card[0])
+
+
+def count_manilhas_hand(cards: list[Card], top_card: Card):
+    return sum(1 for card in cards if is_manilha(card, top_card))
+
+
+def select_card_to_play(
+    cards: list[Card], top_card: Card, play_hist: CardHist, current_pos: int
+):
     if len(cards) == 1:
         return cards[0]
 
@@ -59,7 +80,7 @@ def select_card_to_play(cards, vira, play_hist, current_pos):
     completed_rounds = len(hist_cards_played) // 4
 
     if completed_rounds == 0:
-        return min(cards, key=lambda c: card_value(c, vira))
+        return min(cards, key=lambda c: card_value(c, top_card))
 
     # TODO:
     # Reimplementar lógica paras as jogadas completas
@@ -73,9 +94,7 @@ class ProbabilisticStrategist(Player):
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
 
-    def play(self, top_card, play_hist, score_hist):
-        # Armazenamos o estado atual das cartas do jogador atual
-        _team_state[self.position] = self.cards.copy()
+    def play(self, top_card: Card, play_hist: CardHist, score_hist: ScoreTeam):
 
         current_position = partner_pos = self.position % 4
         partner_position = partner_pos = (self.position + 2) % 4
@@ -83,34 +102,39 @@ class ProbabilisticStrategist(Player):
         current_hand: list[Card] = self.cards.copy()
         count_manilhas = count_manilhas_hand(self.cards, top_card)
 
-        hand_value = get_current_hand_value(score_hist)
+        # print("play | position", current_position)
+        # print("play | partner pos", partner_pos)
+        # print("play | vira", top_card)
+        # print("play | hand_score", current_hand_score)
+        # print("play | current_hand", current_hand)
+        # print("play | manilhas_hand", count_manilhas)
 
-        print("play | hand_value", hand_value)
+        # print("play", play_hist)
 
         # FIX: Avaliar a razão de uma jogada inválida ter sido feita
         selected_card = select_card_to_play(
             self.cards, top_card, play_hist, self.position
         )
 
-        if hand_value >= 12:
-            return 2, selected_card
+        # Avaliar a pontuação necessária
+        if current_hand_score >= 1_000:
+            return [2, selected_card]
 
-        return 1, selected_card
+        return [1, selected_card]
 
     def respond(self, top_card, play_hist, score_hist):
         # Resposta quebrada, pois não possui o algoritmo de Monte Carlo para fazer o cálculo da probabilidade
-        _team_state[self.position] = self.cards.copy()
 
         partner_pos = (self.position + 2) % 4
-        partner_cars = _team_state.get(partner_pos, [])
 
-        hand_value = get_current_hand_value(score_hist)
+        current_hand_score = get_hand_score(self.cards, top_card)
 
-        print("respond | hand_value", hand_value)
+        print("respond | hand_score", current_hand_score)
 
-        if hand_value >= 3:
+        if current_hand_score >= 1_000:
+            return 2
+        if 800 <= current_hand_score <= 1_000:
             return 1
-
         return 0
 
 
@@ -124,7 +148,7 @@ class ScoreStrategist(Player):
         super().__init__(ra, name, image_path)
 
     # Função para retornar o que você vai jogar em determinada mão
-    def play(self, top_card, play_hist, score_hist):
+    def play(self, top_card: Card, play_hist, score_hist):
         """Retorna uma tupla (decisão, carta):
         decisão: 0 = encoberta, 1 = normal, 2 = pedir truco
         carta: a carta a ser jogada (ou None)
@@ -193,6 +217,6 @@ def pair_name():
 def create_pair():
     # Defina a dupla de jogadores a partir da classe criada
     return (
-        ScoreStrategist("000000", "Player 1", "img/custom/Headphone_Cat.jpg"),
-        ScoreStrategist("100000", "Player 2"),
+        ProbabilisticStrategist("000000", "Player 1", "img/custom/Headphone_Cat.jpg"),
+        ProbabilisticStrategist("100000", "Player 2"),
     )
