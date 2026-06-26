@@ -6,9 +6,9 @@
 
 
 from basic_players import Player
-from judge import card_value, manilha_rank
+from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 
-global_score = [0, 0]
+_team_state = {}  # Armazenar o estado de cartas da dupla
 
 # NOTE:
 # Arquivo com configuração antiga porque o arquivo mais recente possui algumas funções quebradas que ainda não implementei adequadamente. Vou resumir o que está no outro arquivo com esse aqui.
@@ -20,6 +20,21 @@ global_score = [0, 0]
 # Por enquanto, esse sistema apenas considera um score da dupla que estava fazendo, isso aqui já é suficiente para derrotar os bots nesse projeto, mas devemos implementar esse sistema.
 #
 # Leia os arquivos no docs/ para saber mais.
+#
+# TODO:
+#  - [ ] Adicionar uma classe representando o tipo para Card
+
+global_score = [0, 0]
+
+
+# @DEPRECATED
+def calculate_id(pos: int):
+    return 0 if pos == 1 or pos == 2 else 1
+
+
+# @DEPRECATED
+def calculate_team_score():
+    return sum(global_score)
 
 
 def hand_score(cards: list[tuple] | tuple, top_card: tuple):
@@ -28,15 +43,78 @@ def hand_score(cards: list[tuple] | tuple, top_card: tuple):
     return count, hand_score
 
 
-def calculate_id(pos: int):
-    return 0 if pos == 1 or pos == 2 else 1
+def get_cards_played(hand_history):
+    return [card for card in hand_history if card[1] is not None]
 
 
-def calculate_team_score():
-    return sum(global_score)
+def get_current_hand_value(score_hist):
+    return score_hist[-1][1] if score_hist else 1
 
 
-class Player1(Player):
+def select_card_to_play(cards, vira, play_hist, current_pos):
+    if len(cards) == 1:
+        return cards[0]
+
+    hist_cards_played = get_cards_played(play_hist[-1]) if play_hist else []
+    completed_rounds = len(hist_cards_played) // 4
+
+    if completed_rounds == 0:
+        return min(cards, key=lambda c: card_value(c, vira))
+
+    # TODO:
+    # Reimplementar lógica paras as jogadas completas
+
+    return cards[0]
+
+
+# Nova classe
+# Ainda quebrado, não consegue vencer o ScoreStrategist ainda
+class ProbabilisticStrategist(Player):
+    def __init__(self, ra, name, image_path="img/none.jpg"):
+        super().__init__(ra, name, image_path)
+
+    def play(self, top_card, play_hist, score_hist):
+        # Armazenamos o estado atual das cartas do jogador atual
+        _team_state[self.position] = self.cards.copy()
+
+        # Para sabermos as cartas da nossa dupla, vamos armazenar a posição da mesa no dicionário para então salvar as cartas quando for a sua vez de jogar. Caso já tenha jogado, o outro terá as informações do estado das nossas cartas.
+        partner_pos = (self.position + 2) % 4
+        partner_cars = _team_state.get(partner_pos, [])
+
+        hand_value = get_current_hand_value(score_hist)
+
+        print("play | hand_value", hand_value)
+
+        # FIX: Avaliar a razão de uma jogada inválida ter sido feita
+        selected_card = select_card_to_play(
+            self.cards, top_card, play_hist, self.position
+        )
+
+        if hand_value >= 12:
+            return 2, selected_card
+
+        return 1, selected_card
+
+    def respond(self, top_card, play_hist, score_hist):
+        # Resposta quebrada, pois não possui o algoritmo de Monte Carlo para fazer o cálculo da probabilidade
+        _team_state[self.position] = self.cards.copy()
+
+        partner_pos = (self.position + 2) % 4
+        partner_cars = _team_state.get(partner_pos, [])
+
+        hand_value = get_current_hand_value(score_hist)
+
+        print("respond | hand_value", hand_value)
+
+        if hand_value >= 3:
+            return 1
+
+        return 0
+
+
+# Antigo
+# Será mudado para a outra classe
+class ScoreStrategist(Player):
     hand_score = (0, 0)
 
     # Se estiver dúvida sobre como começar olhe os players prontos em basic_players.py e o ReadMe
@@ -74,13 +152,13 @@ class Player1(Player):
         self.hand_score = hand_score(self.cards, top_card)
         global_score[id] = self.hand_score[1]
 
-        print("id", self.name)
-        print("best_card", best_card)
-        print("cards:", self.cards)
-        print("manilha:", manilha_rank(top_card[0]))
-        print("score", self.hand_score[1])
-        print("global_score", global_score)
-        print("team_score", calculate_team_score())
+        # print("id", self.name)
+        # print("best_card", best_card)
+        # print("cards:", self.cards)
+        # print("manilha:", manilha_rank(top_card[0]))
+        # print("score", self.hand_score[1])
+        # print("global_score", global_score)
+        # print("team_score", calculate_team_score())
 
         resp = 1, None
         if self.cards and calculate_team_score() >= 1_000:
@@ -113,12 +191,12 @@ class Player1(Player):
 
 # Função que define o nome da dupla:
 def pair_name():
-    return "Nossa Dupla"  # Defina aqui o nome da sua dupla
+    return "ProbabilisticStrategist"  # Defina aqui o nome da sua dupla
 
 
 # Função que cria a dupla:
 def create_pair():
     return (
-        Player1("1", "L"),
-        Player1("2", "H"),
+        ScoreStrategist("000000", "Player 1"),
+        ScoreStrategist("100000", "Player 2"),
     )  # Defina aqui a dupla de jogadores. Deve ser uma tupla com dois jogadores.
