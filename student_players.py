@@ -8,8 +8,6 @@
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 
-_team_state = {}  # Armazenar o estado de cartas da dupla
-
 # NOTE:
 # Arquivo com configuração antiga porque o arquivo mais recente possui algumas funções quebradas que ainda não implementei adequadamente. Vou resumir o que está no outro arquivo com esse aqui.
 #
