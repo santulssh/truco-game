@@ -47,8 +47,8 @@ def get_cards_played(hand_history):
     return [card for card in hand_history if card[1] is not None]
 
 
-def get_current_hand_value(score_hist):
-    return score_hist[-1][1] if score_hist else 1
+def get_hand_score(cards: list[Card], top_card: Card):
+    return sum(card_value(card, top_card) for card in cards)
 
 
 def select_card_to_play(cards, vira, play_hist, current_pos):
@@ -77,9 +77,11 @@ class ProbabilisticStrategist(Player):
         # Armazenamos o estado atual das cartas do jogador atual
         _team_state[self.position] = self.cards.copy()
 
-        # Para sabermos as cartas da nossa dupla, vamos armazenar a posição da mesa no dicionário para então salvar as cartas quando for a sua vez de jogar. Caso já tenha jogado, o outro terá as informações do estado das nossas cartas.
-        partner_pos = (self.position + 2) % 4
-        partner_cars = _team_state.get(partner_pos, [])
+        current_position = partner_pos = self.position % 4
+        partner_position = partner_pos = (self.position + 2) % 4
+        current_hand_score = get_hand_score(self.cards, top_card)
+        current_hand: list[Card] = self.cards.copy()
+        count_manilhas = count_manilhas_hand(self.cards, top_card)
 
         hand_value = get_current_hand_value(score_hist)
 
