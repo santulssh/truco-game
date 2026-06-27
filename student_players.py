@@ -124,8 +124,7 @@ class ProbabilisticStrategist(Player):
 
         return [1, selected_card]
 
-    def respond(self, top_card, play_hist, score_hist):
-
+    def respond(self, top_card: Card, play_hist: CardHist, score_hist: GameScore):
         # NOTE:
         # Ainda não utilizado, pode ser útil
         # partner_pos = (self.position + 2) % 4
