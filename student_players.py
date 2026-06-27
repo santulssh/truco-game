@@ -47,6 +47,14 @@ class ProbabilisticStrategist(Player):
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
 
+    def _get_current_played_status(self, play_hist: CardHist):
+        # Retorna jogas da partida atual
+        return play_hist[-1] if len(play_hist) > 0 else []
+
+    def _is_raise_allowed(self, truco_value: int | None):
+        # Verifica se é válido aumentar o valor do truco
+        return True if truco_value is None or truco_value < 12 else False
+
     def _get_current_team_score(self, score_hist: GameScore) -> int:
         # Retorna a atual pontuação do time na partida
         # TODO: Avaliar se a posição do score permanece sempre a mesma
@@ -112,10 +120,21 @@ class ProbabilisticStrategist(Player):
         # print("score", current_score)
         # print("team", team_score)
 
-        # Escolhe jogar normal ou pedir truco com base pontuação das cartas em mãos e no placar do time
-        if self.current_hand_score >= 800 and team_score > 0:
-            return [2, selected_card]
+        # FIX: A jogada inválida acontece quando o jogador tenta pedir truco quando ja foi pedido.
+        # # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
+        # current_status = self._get_current_played_status(play_hist)
+        # last_status: list = current_status[-1] if current_status else []
+        # play_type = last_status[-1] if last_status else None
 
+        # print(play_type)
+        # # Válidamos se é possível pedir truco se nenhum truco foi feito
+        # if type(play_type) is int and not self.truco_requested:
+        #     self.truco_requested = True
+
+        # print(play_type)
+        # print(self.truco_requested)
+
+        # Escolhe jogar normal ou pedir truco com base pontuação das cartas em mãos e no placar do time
         if self.current_hand_score >= 1_000:
             return [2, selected_card]
 
@@ -132,16 +151,26 @@ class ProbabilisticStrategist(Player):
         team_score = self._get_current_team_score(score_hist)
         self.current_hand_score = get_hand_score(self.cards, top_card)
 
+        current_status = self._get_current_played_status(play_hist)
+        last_status: list = current_status[-1] if current_status else []
+        play_type = last_status[-1] if last_status else None
+
+        is_raise_allowed = (
+            self._is_raise_allowed(play_type)
+            if type(play_type) is int or play_type is None
+            else False
+        )
+
         # print("respond | hand_score", self.current_hand_score)
+        # print("respond | Hist", play_hist[-1])
+        # print("respond | Truco", truco_value)
+        # print("respond | Raise", is_raise_allowed)
 
         if self.current_hand_score >= 1_000:
-            return 2
+            return 2 if is_raise_allowed else 1
 
         if self.current_hand_score >= 800 and team_score > 0:
             return 1
-
-        if self.current_hand_score >= 800:
-            return 0
 
         return 0
 
