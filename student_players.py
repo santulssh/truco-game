@@ -57,6 +57,16 @@ def hand_score(cards: list[tuple] | tuple, top_card: tuple):
 def get_cards_played(hand_history: list):
     return [card for card in hand_history if card[1] is not None]
 
+def get_cards_not_played(hand_history, top_card, cards):
+    played = get_cards_played(hand_history).copy()
+
+    played.append(top_card)
+    played.extend(cards)
+
+    all_cards = [(rank, suit) for suit in SUIT_ORDER for rank in RANK_ORDER]
+
+    return [card for card in all_cards if card not in played]
+
 
 def get_hand_score(cards: list[Card], top_card: Card):
     return sum(card_value(card, top_card) for card in cards)
