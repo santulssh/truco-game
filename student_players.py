@@ -130,9 +130,7 @@ class ProbabilisticStrategist(Player):
         # Ainda não utilizado, pode ser útil
         # partner_pos = (self.position + 2) % 4
 
-        current_score = score_hist[-1][0] if score_hist else []
-        team_score: int = current_score[1] if len(current_score) > 0 else 0
-
+        team_score = self._get_current_team_score(score_hist)
         self.current_hand_score = get_hand_score(self.cards, top_card)
 
         # print("respond | hand_score", self.current_hand_score)
