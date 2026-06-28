@@ -29,6 +29,7 @@ GameHist = NewType("GameHist", list[list[PlayerDecision]])
 class ProbabilisticStrategist(Player):
     current_hand_score: int = 0
     count_manilhas_in_hand: int = 0
+    truco_requested = False
 
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
@@ -128,26 +129,30 @@ class ProbabilisticStrategist(Player):
         # print("score", current_score)
         # print("team", team_score)
 
-        # FIX: A jogada inválida acontece quando o jogador tenta pedir truco quando ja foi pedido.
-        # # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
-        # current_status = self._get_current_played_status(play_hist)
-        # last_status: list = current_status[-1] if current_status else []
-        # play_type = last_status[-1] if last_status else None
+        # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
+        current_play_list = self._get_current_play_list(play_hist)
 
-        # print(play_type)
-        # # Válidamos se é possível pedir truco se nenhum truco foi feito
-        # if type(play_type) is int and not self.truco_requested:
-        #     self.truco_requested = True
+        # Válidamos se é possível pedir truco se nenhum truco foi feito
+        if not self.truco_requested:
+            for player_decision in current_play_list:
+                status = player_decision[-1]
+                if type(status) is int:
+                    self.truco_requested = True
+                    break
 
         # print(play_type)
         # print(self.truco_requested)
 
         # Escolhe jogar normal ou pedir truco com base pontuação das cartas em mãos e no placar do time
         if self.current_hand_score >= 1_000:
-            return [2, selected_card]
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
 
         if self.current_hand_score >= 800 and team_score > 0:
-            return [2, selected_card]
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
 
         return [1, selected_card]
 
