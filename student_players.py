@@ -4,6 +4,7 @@
 # Nome #02:                             João Rodolfo Berger Andrade
 # RA #02:                               306480
 
+import random
 from typing import NewType
 
 from basic_players import Player
@@ -31,8 +32,9 @@ def get_cards_played(last_play_hist):
     # Retornar todas as cartas jogadas na rodada atual
     return [state[1] for state in last_play_hist if state[1] is not None]
 
-def get_cards_not_played(play_hist, top_card, cards):
-    played = []
+def _get_remaining_deck(known_cards: set[Card]):
+    default_deck = [(r, s) for r in RANK_ORDER for s in SUIT_ORDER]
+    return filter(lambda c: c not in known_cards, default_deck)
 
     if play_hist:
         played = get_cards_played(play_hist[-1]).copy()
