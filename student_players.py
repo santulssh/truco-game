@@ -54,7 +54,7 @@ class ProbabilisticStrategist(Player):
         # Calcula a quantidade de manilhas em mãos
         return sum(1 for card in self.cards if self._is_manilha(card, top_card))
 
-    def _get_current_played_status(self, play_hist: GameHist):
+    def _get_current_play_list(self, play_hist: GameHist):
         # Retorna jogas da partida atual
         return play_hist[-1] if len(play_hist) > 0 else []
 
@@ -169,14 +169,14 @@ class ProbabilisticStrategist(Player):
         team_score = self._get_current_team_score(score_hist)
 
         # Armazenamos o estado atual da partida
-        current_status = self._get_current_played_status(play_hist)
-        last_status: list = current_status[-1] if current_status else []
-        play_type = last_status[-1] if last_status else None
+        current_play_list = self._get_current_play_list(play_hist)
+        player_decisision: list = current_play_list[-1] if current_play_list else []
+        status = player_decisision[-1] if player_decisision else None
 
         # Verificamos se o jogador pode pedir aumento
         is_raise_allowed = (
-            self._is_raise_allowed(play_type)
-            if type(play_type) is int or play_type is None
+            self._is_raise_allowed(status)
+            if type(status) is int or status is None
             else False
         )
 
