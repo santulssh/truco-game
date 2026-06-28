@@ -450,26 +450,8 @@ class ProbabilisticStrategist(Player):
 
         # Consideramos a pontuação da partida e armazenamos o estado atual do nosso time
         team_score = self._get_current_team_score(score_hist)
-
         # Selecionamos a carta a partir do estado do jogo
         selected_card = self._select_card_to_play(top_card, play_hist, team_score)
-
-        # NOTE:
-        # Debug apenas
-        # print("play | position", current_position)
-        # print("play | partner pos", partner_pos)
-        # print("play | vira", top_card)
-        # print("play | hand_score", current_hand_score)
-        # print("play | current_hand", current_hand)
-        # print("play | manilhas_hand", count_manilhas)
-        # print("play", play_hist)
-        # print("score", current_score)
-        # print("team", team_score)
-
-        #print(f"Rodada atual: {get_current_round(play_hist)}")
-        #print(f"Cartas jogadas: {get_cards_played(play_hist[-1]) if play_hist else []}")
-        #print(f"Rodadas vencidas (Nós / Eles): {self.get_rounds_won(play_hist, top_card)}")
-
         # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
         current_play_list = self._get_current_play_list(play_hist)
 
