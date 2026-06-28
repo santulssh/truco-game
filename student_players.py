@@ -4,34 +4,214 @@
 # Nome #02:                             [NOME COMPLETO #02]
 # RA #02:                               [RA #02]
 
-
 from typing import NewType
 
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 
-# NOTE:
-# Arquivo com configuração antiga porque o arquivo mais recente possui algumas funções quebradas que ainda não implementei adequadamente. Vou resumir o que está no outro arquivo com esse aqui.
-#
-# Basicamente estamos criando um algoritmo para tentar calcualar a probabilidade de ganhar através das cartas nas mãos dos jogadoes. Vamos implementar um sistema baseado em Monte Carlo para fazer isso utilizando o estado das cartas dos jogadores (nossa dupla) com as cartas a serem lançadas pela outra dupla.
-#
-# Calculo deve considerar a força das nossas cartas e as cartas jogadas pelos outros jogadores. Vamos avaliar também se possuimos manilhas e quais as chances de ganharmos através das nossas cartas.
-#
-# Por enquanto, esse sistema apenas considera um score da dupla que estava fazendo, isso aqui já é suficiente para derrotar os bots nesse projeto, mas devemos implementar esse sistema.
-#
-# Leia os arquivos no docs/ para saber mais.
-#
-# TODO:
-#  - [ ] Fix jogadas inválidas sendo registradas
-
-Card = NewType("Card", tuple[str, str])  # Card[rank, suit]
+# Descreve o tipo de carta
+# 0: Rank da carta; 1: Suit da carta
+Card = NewType("Card", tuple[str, str])
+# Descreve a pontuação da rodada atual
 # 0: Pontuação do adverśario; 1: Pontuação da dupla
 RoundScore = NewType("RoundScore", list[int])
+# Registra as últimas pontuações de cada jogo
 # round: [[RoundScore], int]
-ScoreTeam = NewType("ScoreTeam", list[list[RoundScore]])
-# hist: [pos, Card, PlayType]
-# PlayType: "NORMAL" | "ACEITOU" | "CORREU" | 3, 6, 9, 12
-CardHist = NewType("CardHist", list[list])
+GameScore = NewType("GameScore", list[list[RoundScore]])
+# Registra o tipo de jogada
+# hist: [pos, Card, status]
+# status: "NORMAL" | "ACEITOU" | "CORREU" | int(3, 6, 9, 12)
+PlayerDecision = NewType("PlayerDecision", list)
+# Descreve o estado atual de todas as jogadas registradas no jogo
+GameHist = NewType("GameHist", list[list[PlayerDecision]])
+
+
+class ProbabilisticStrategist(Player):
+    current_hand_score: int = 0
+    count_manilhas_in_hand: int = 0
+    truco_requested = False
+
+    def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
+        super().__init__(ra, name, image_path)
+
+    def _get_played_cards(self, current_play_list: list[PlayerDecision]):
+        # NOTE:
+        # Função ainda não sendo usada
+        # Retornar todas as cartas jogadas na rodada atual
+        return [
+            current_play[1]
+            for current_play in current_play_list
+            if current_play[1] is not None
+        ]
+
+    def _calculate_hand_score(self, top_card: Card):
+        # Calcula o valor da mão com base nas cartas
+        return sum(card_value(card, top_card) for card in self.cards)
+
+    def _is_manilha(self, card: Card, top_card: Card):
+        # Verifica se uma carta é uma manilha com base no rank da vira
+        return card[0] == manilha_rank(top_card[0])
+
+    def _count_manilhas_hand(self, top_card: Card):
+        # Calcula a quantidade de manilhas em mãos
+        return sum(1 for card in self.cards if self._is_manilha(card, top_card))
+
+    def _get_current_play_list(self, play_hist: GameHist):
+        # Retorna jogas da partida atual
+        return play_hist[-1] if len(play_hist) > 0 else []
+
+    def _is_raise_allowed(self, status: int | None):
+        # Verifica se é válido aumentar o valor do truco
+        if status is None or (type(status) is int and status < 12):
+            return True
+        return False
+
+    def _get_current_team_score(self, score_hist: GameScore) -> int:
+        # Retorna a atual pontuação do time na partida
+        # TODO: Avaliar se a posição do score permanece sempre a mesma
+        current_score = score_hist[-1][0] if score_hist else []
+        return current_score[1] if len(current_score) > 0 else 0
+
+    def _select_card_to_play(
+        self, top_card: Card, play_hist: GameHist, team_score: int
+    ) -> Card:
+        # Caso reste apenas uma carta em mãos, escolhemos a última carta que sobrou
+        if len(self.cards) == 1:
+            return self.cards[0]
+
+        # Armazenamos as cartas jogadas por todos os jogadores
+        # NOTE: Ainda não utilizado para a decisão
+        # hist_cards_played = get_cards_played(play_hist[-1]) if play_hist else []
+
+        # Avaliamos a estratégia de jogada a partir do score da mão do jogador e do placar do time.
+        # Em seguida, selecionar a carta a ser jogada com base no maior ou menor valor da carta
+
+        if self.current_hand_score >= 1_000 and self.count_manilhas_in_hand > 0:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        if self.current_hand_score >= 1_000:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        if (
+            self.current_hand_score >= 800
+            and self.count_manilhas_in_hand > 0
+            and team_score > 0
+        ):
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        if self.current_hand_score >= 800 and team_score > 0:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        return min(self.cards, key=lambda c: card_value(c, top_card))
+
+    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+        # NOTE:
+        # Ainda não utilizadas, porém podem ser úteis
+        # current_position = partner_pos = self.position % 4
+        # partner_position = partner_pos = (self.position + 2) % 4
+
+        # Calcula a atual pontuação da mão e quantidades de manilhas
+        self.current_hand_score = self._calculate_hand_score(top_card)
+        self.count_manilhas_in_hand = self._count_manilhas_hand(top_card)
+
+        # Consideramos a pontuação da partida e armazenamos o estado atual do nosso time
+        team_score = self._get_current_team_score(score_hist)
+
+        # Selecionamos a carta a partir do estado do jogo
+        selected_card = self._select_card_to_play(top_card, play_hist, team_score)
+
+        # NOTE:
+        # Debug apenas
+        # print("play | position", current_position)
+        # print("play | partner pos", partner_pos)
+        # print("play | vira", top_card)
+        # print("play | hand_score", current_hand_score)
+        # print("play | current_hand", current_hand)
+        # print("play | manilhas_hand", count_manilhas)
+        # print("play", play_hist)
+        # print("score", current_score)
+        # print("team", team_score)
+
+        # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
+        current_play_list = self._get_current_play_list(play_hist)
+
+        # Válidamos se é possível pedir truco se nenhum truco foi feito
+        if not self.truco_requested:
+            for player_decision in current_play_list:
+                status = player_decision[-1]
+                if type(status) is int:
+                    self.truco_requested = True
+                    break
+
+        # Escolhe jogar normal ou pedir truco com base pontuação das cartas em mãos e no placar do time
+        if self.current_hand_score >= 1_000:
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
+
+        if (
+            self.current_hand_score >= 800
+            and self.count_manilhas_in_hand > 0
+            and team_score > 0
+        ):
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
+
+        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
+
+        return [1, selected_card]
+
+    def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+        # NOTE:
+        # Ainda não utilizado, pode ser útil
+        # partner_pos = (self.position + 2) % 4
+
+        # Calcula a atual pontuação da mão e quantidades de manilhas
+        self.current_hand_score = self._calculate_hand_score(top_card)
+        self.count_manilhas_in_hand = self._count_manilhas_hand(top_card)
+
+        # Consideramos a pontuação da partida e armazenamos o estado atual do nosso time
+        team_score = self._get_current_team_score(score_hist)
+
+        # Armazenamos o estado atual da partida
+        current_play_list = self._get_current_play_list(play_hist)
+        player_decisision: list = current_play_list[-1] if current_play_list else []
+        status = player_decisision[-1] if player_decisision else None
+
+        # Verificamos se o jogador pode pedir aumento
+        is_raise_allowed = (
+            self._is_raise_allowed(status)
+            if type(status) is int or status is None
+            else False
+        )
+
+        # Jogador toma decisão a partir do estado atual do jogo
+        # Escolhendo [0] correr, [1] aceitar truco e [2] aumentar truco
+        if self.current_hand_score >= 1_000:
+            return 2 if is_raise_allowed else 1
+
+        if (
+            self.current_hand_score >= 800
+            and self.count_manilhas_in_hand > 0
+            and team_score > 0
+        ):
+            return 2 if is_raise_allowed else 1
+
+        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+            return 2 if is_raise_allowed else 1
+
+        if self.current_hand_score >= 800 and team_score > 0:
+            return 1
+
+        return 0
+
 
 # @Deprecated
 global_score = [0, 0]
@@ -54,92 +234,10 @@ def hand_score(cards: list[tuple] | tuple, top_card: tuple):
     return count, hand_score
 
 
-def get_cards_played(hand_history: list):
-    return [card for card in hand_history if card[1] is not None]
-
-
-def get_hand_score(cards: list[Card], top_card: Card):
-    return sum(card_value(card, top_card) for card in cards)
-
-
-def is_manilha(card: Card, top_card: Card):
-    return card[0] == manilha_rank(top_card[0])
-
-
-def count_manilhas_hand(cards: list[Card], top_card: Card):
-    return sum(1 for card in cards if is_manilha(card, top_card))
-
-
-def select_card_to_play(
-    cards: list[Card], top_card: Card, play_hist: CardHist, current_pos: int
-):
-    if len(cards) == 1:
-        return cards[0]
-
-    hist_cards_played = get_cards_played(play_hist[-1]) if play_hist else []
-    completed_rounds = len(hist_cards_played) // 4
-
-    if completed_rounds == 0:
-        return min(cards, key=lambda c: card_value(c, top_card))
-
-    # TODO:
-    # Reimplementar lógica paras as jogadas completas
-
-    return cards[0]
-
-
-# Nova classe
-# Ainda quebrado, não consegue vencer o ScoreStrategist ainda
-class ProbabilisticStrategist(Player):
-    def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
-        super().__init__(ra, name, image_path)
-
-    def play(self, top_card: Card, play_hist: CardHist, score_hist: ScoreTeam):
-
-        current_position = partner_pos = self.position % 4
-        partner_position = partner_pos = (self.position + 2) % 4
-        current_hand_score = get_hand_score(self.cards, top_card)
-        current_hand: list[Card] = self.cards.copy()
-        count_manilhas = count_manilhas_hand(self.cards, top_card)
-
-        # print("play | position", current_position)
-        # print("play | partner pos", partner_pos)
-        # print("play | vira", top_card)
-        # print("play | hand_score", current_hand_score)
-        # print("play | current_hand", current_hand)
-        # print("play | manilhas_hand", count_manilhas)
-
-        # print("play", play_hist)
-
-        # FIX: Avaliar a razão de uma jogada inválida ter sido feita
-        selected_card = select_card_to_play(
-            self.cards, top_card, play_hist, self.position
-        )
-
-        # Avaliar a pontuação necessária
-        if current_hand_score >= 1_000:
-            return [2, selected_card]
-
-        return [1, selected_card]
-
-    def respond(self, top_card, play_hist, score_hist):
-        # Resposta quebrada, pois não possui o algoritmo de Monte Carlo para fazer o cálculo da probabilidade
-
-        partner_pos = (self.position + 2) % 4
-
-        current_hand_score = get_hand_score(self.cards, top_card)
-
-        print("respond | hand_score", current_hand_score)
-
-        if current_hand_score >= 1_000:
-            return 2
-        if 800 <= current_hand_score <= 1_000:
-            return 1
-        return 0
-
-
-# Antigo
-# Será mudado para a outra classe
+# NOTE:
+# Classe de jogador com lógica apenas levando em consideração o score da mão.
+# Remover no futuro, mas por enquanto serve para compararmos em relação a nova classe.
+# @DEPRECATED
 class ScoreStrategist(Player):
     hand_score = (0, 0)
 
@@ -178,14 +276,6 @@ class ScoreStrategist(Player):
         self.hand_score = hand_score(self.cards, top_card)
         global_score[id] = self.hand_score[1]
 
-        # print("id", self.name)
-        # print("best_card", best_card)
-        # print("cards:", self.cards)
-        # print("manilha:", manilha_rank(top_card[0]))
-        # print("score", self.hand_score[1])
-        # print("global_score", global_score)
-        # print("team_score", calculate_team_score())
-
         if self.cards and calculate_team_score() >= 1_000:
             return 2, best_card
         elif self.cards and calculate_team_score() <= 1_000:
@@ -217,6 +307,8 @@ def pair_name():
 def create_pair():
     # Defina a dupla de jogadores a partir da classe criada
     return (
-        ProbabilisticStrategist("000000", "Player 1", "img/custom/Headphone_Cat.jpg"),
-        ProbabilisticStrategist("100000", "Player 2"),
+        ProbabilisticStrategist(
+            "000000", "Strategist1", "img/custom/Headphone_Cat.jpg"
+        ),
+        ProbabilisticStrategist("100000", "Strategist2", "img/none.jpg"),
     )
