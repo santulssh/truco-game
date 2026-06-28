@@ -1,13 +1,15 @@
 ### TODO: PREENCHA SUAS INFORMAÇÕES AQUI ###
 # Nome #01 (quem entregou o código):    Lucas Henrique dos Santos
 # RA #01 (quem entregou o código):      220449
-# Nome #02:                             [NOME COMPLETO #02]
-# RA #02:                               [RA #02]
+# Nome #02:                             João Rodolfo Berger Andrade
+# RA #02:                               306480
 
 from typing import NewType
 
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
+
+import random
 
 # Descreve o tipo de carta
 # 0: Rank da carta; 1: Suit da carta
@@ -25,6 +27,45 @@ PlayerDecision = NewType("PlayerDecision", list)
 # Descreve o estado atual de todas as jogadas registradas no jogo
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
+def get_cards_played(last_play_hist):
+    # Retornar todas as cartas jogadas na rodada atual
+    return [state[1] for state in last_play_hist if state[1] is not None]
+
+def get_cards_not_played(play_hist, top_card, cards):
+    played = []
+
+    if play_hist:
+        played = get_cards_played(play_hist[-1]).copy()
+
+    played.append(top_card)
+    played.extend(cards)
+
+    all_cards = [(rank, suit) for suit in SUIT_ORDER for rank in RANK_ORDER]
+
+    return [card for card in all_cards if card not in played]
+
+def get_current_round(play_hist):
+    #calcula o número do round atual
+    if not play_hist:
+        return 1
+
+    cards_played = get_cards_played(play_hist[-1])
+    return len(cards_played) // 4 + 1
+
+def get_hand_score(cards: list[Card], top_card: Card):
+    # Calcula o valor da mão com base nas cartas
+    return sum(card_value(card, top_card) for card in cards)
+
+
+def is_manilha(card: Card, top_card: Card):
+    # Verifica se uma carta é uma manilha com base no rank da vira
+    return card[0] == manilha_rank(top_card[0])
+
+
+def count_manilhas_hand(cards: list[Card], top_card: Card):
+    # Calcula a quantidade de manilhas em mãos
+    return sum(1 for card in cards if is_manilha(card, top_card))
+  
 
 class ProbabilisticStrategist(Player):
     current_hand_score: int = 0
@@ -33,6 +74,66 @@ class ProbabilisticStrategist(Player):
 
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
+        
+    def get_rounds_won(self, play_hist, top_card):
+        #calcula quantas rodadas foram ganhas tanto por nós quanto pelo oponente
+
+        my_rounds = 0
+        opp_rounds = 0
+
+        if not play_hist:
+            return 0, 0
+
+        plays = [play for play in play_hist[-1] if play[1] is not None]
+
+        num_complete_rounds = len(plays) // 4
+
+        for i in range(num_complete_rounds):
+            round_plays = plays[i*4:(i+1)*4]
+
+            winner = max(round_plays, key=lambda p: card_value(p[1], top_card))
+
+            winner_player = winner[0]
+
+            if winner_player % 2 == self.position % 2:
+                my_rounds += 1
+            else:
+                opp_rounds += 1
+
+        return my_rounds, opp_rounds
+
+
+    def _get_probability_of_winning(self, play_hist, top_card, cards):
+        #calcula a probabilidade de vencer a rodada
+        not_played = get_cards_not_played(play_hist, top_card, cards)
+
+        current_round = get_current_round(play_hist)
+
+        number_cards_in_round = 0
+        if play_hist:
+            number_cards_in_round = (len(get_cards_played(play_hist[-1])) % 4)
+
+        simulations_number = 1000
+        success = 0
+
+        for i in range(simulations_number):
+
+            if self.simulate(play_hist, top_card, not_played, current_round, number_cards_in_round):
+                success += 1
+
+        return success / simulations_number
+    
+    def simulate(self, play_hist, top_card, not_played_original, current_round, number_cards_played_in_round):
+        #deu tudo errado vou refazer
+        not_played = not_played_original.copy()
+
+        my_rounds, opp_rounds = self.get_rounds_won(play_hist, top_card)
+
+        cards_to_simulate = (4-number_cards_played_in_round-1) + (3-current_round)*3
+
+        simulated_cards = random.sample(not_played, min(cards_to_simulate, len(not_played)))
+
+        return 1 if win else 0
 
     def _get_played_cards(self, current_play_list: list[PlayerDecision]):
         # NOTE:
