@@ -156,9 +156,14 @@ class ProbabilisticStrategist(Player):
         # Ainda não utilizado, pode ser útil
         # partner_pos = (self.position + 2) % 4
 
-        team_score = self._get_current_team_score(score_hist)
-        self.current_hand_score = get_hand_score(self.cards, top_card)
+        # Calcula a atual pontuação da mão e quantidades de manilhas
+        self.current_hand_score = self._calculate_hand_score(top_card)
+        self.count_manilhas_in_hand = self._count_manilhas_hand(top_card)
 
+        # Consideramos a pontuação da partida e armazenamos o estado atual do nosso time
+        team_score = self._get_current_team_score(score_hist)
+
+        # Armazenamos o estado atual da partida
         current_status = self._get_current_played_status(play_hist)
         last_status: list = current_status[-1] if current_status else []
         play_type = last_status[-1] if last_status else None
@@ -176,6 +181,16 @@ class ProbabilisticStrategist(Player):
         # print("respond | Raise", is_raise_allowed)
 
         if self.current_hand_score >= 1_000:
+            return 2 if is_raise_allowed else 1
+
+        if (
+            self.current_hand_score >= 800
+            and self.count_manilhas_in_hand > 0
+            and team_score > 0
+        ):
+            return 2 if is_raise_allowed else 1
+
+        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
             return 2 if is_raise_allowed else 1
 
         if self.current_hand_score >= 800 and team_score > 0:
