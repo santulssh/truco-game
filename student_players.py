@@ -10,8 +10,6 @@ from typing import NewType
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
 
-import random
-
 # Descreve o tipo de carta
 # 0: Rank da carta; 1: Suit da carta
 Card = NewType("Card", tuple[str, str])
@@ -28,46 +26,11 @@ PlayerDecision = NewType("PlayerDecision", list)
 # Descreve o estado atual de todas as jogadas registradas no jogo
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
-def get_cards_played(last_play_hist):
-    # Retornar todas as cartas jogadas na rodada atual
-    return [state[1] for state in last_play_hist if state[1] is not None]
 
 def _get_remaining_deck(known_cards: set[Card]):
     default_deck = [(r, s) for r in RANK_ORDER for s in SUIT_ORDER]
     return filter(lambda c: c not in known_cards, default_deck)
 
-    if play_hist:
-        played = get_cards_played(play_hist[-1]).copy()
-
-    played.append(top_card)
-    played.extend(cards)
-
-    all_cards = [(rank, suit) for suit in SUIT_ORDER for rank in RANK_ORDER]
-
-    return [card for card in all_cards if card not in played]
-
-def get_current_round(play_hist):
-    #calcula o número do round atual
-    if not play_hist:
-        return 1
-
-    cards_played = get_cards_played(play_hist[-1])
-    return len(cards_played) // 4 + 1
-
-def get_hand_score(cards: list[Card], top_card: Card):
-    # Calcula o valor da mão com base nas cartas
-    return sum(card_value(card, top_card) for card in cards)
-
-
-def is_manilha(card: Card, top_card: Card):
-    # Verifica se uma carta é uma manilha com base no rank da vira
-    return card[0] == manilha_rank(top_card[0])
-
-
-def count_manilhas_hand(cards: list[Card], top_card: Card):
-    # Calcula a quantidade de manilhas em mãos
-    return sum(1 for card in cards if is_manilha(card, top_card))
-  
 
 class ProbabilisticStrategist(Player):
     current_hand_score: int = 0
