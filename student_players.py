@@ -35,6 +35,8 @@ class ProbabilisticStrategist(Player):
         super().__init__(ra, name, image_path)
 
     def _get_played_cards(self, current_play_list: list[PlayerDecision]):
+        # NOTE:
+        # Função ainda não sendo usada
         # Retornar todas as cartas jogadas na rodada atual
         return [
             current_play[1]
@@ -140,9 +142,6 @@ class ProbabilisticStrategist(Player):
                     self.truco_requested = True
                     break
 
-        # print(play_type)
-        # print(self.truco_requested)
-
         # Escolhe jogar normal ou pedir truco com base pontuação das cartas em mãos e no placar do time
         if self.current_hand_score >= 1_000:
             return (
@@ -180,11 +179,8 @@ class ProbabilisticStrategist(Player):
             else False
         )
 
-        # print("respond | hand_score", self.current_hand_score)
-        # print("respond | Hist", play_hist[-1])
-        # print("respond | Truco", truco_value)
-        # print("respond | Raise", is_raise_allowed)
-
+        # Jogador toma decisão a partir do estado atual do jogo
+        # Escolhendo [0] correr, [1] aceitar truco e [2] aumentar truco
         if self.current_hand_score >= 1_000:
             return 2 if is_raise_allowed else 1
 
