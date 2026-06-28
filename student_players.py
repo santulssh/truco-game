@@ -34,7 +34,7 @@ class ProbabilisticStrategist(Player):
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
 
-    def _get_current_play_hist(self, current_play_list: list[PlayerDecision]):
+    def _get_played_cards(self, current_play_list: list[PlayerDecision]):
         # Retornar todas as cartas jogadas na rodada atual
         return [
             current_play[1]
