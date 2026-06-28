@@ -101,39 +101,166 @@ class ProbabilisticStrategist(Player):
                 opp_rounds += 1
 
         return my_rounds, opp_rounds
+    
+    def permutations(self, cards):
+        orders = []
+
+        if len(cards) == 1:
+            orders.append([cards[0]])
+
+        elif len(cards) == 2:
+            orders.append([cards[0], cards[1]])
+            orders.append([cards[1], cards[0]])
+
+        elif len(cards) == 3:
+            for i in range(3):
+                for j in range(3):
+                    if j == i:
+                        continue
+                    for k in range(3):
+                        if k == i or k == j:
+                            continue
+                        orders.append([cards[i], cards[j], cards[k]])
+
+        return orders
 
 
     def _get_probability_of_winning(self, play_hist, top_card, cards):
-        #calcula a probabilidade de vencer a rodada
+        # calcula a probabilidade de vencer a rodada
         not_played = get_cards_not_played(play_hist, top_card, cards)
 
         current_round = get_current_round(play_hist)
 
         number_cards_in_round = 0
         if play_hist:
-            number_cards_in_round = (len(get_cards_played(play_hist[-1])) % 4)
+            number_cards_in_round = len(get_cards_played(play_hist[-1])) % 4
 
-        simulations_number = 1000
-        success = 0
+        simulations_number = 2000
 
-        for i in range(simulations_number):
+        wins = 0
+        best_order = None
+        best_order_wins = -1
 
-            if self.simulate(play_hist, top_card, not_played, current_round, number_cards_in_round):
-                success += 1
+        orders = self.permutations(cards)
 
-        return success / simulations_number
+        for card_order in orders:
+
+            order_wins = 0
+
+            for i in range(simulations_number):
+                result = self.simulate(play_hist, top_card, not_played, current_round, number_cards_in_round, card_order)
+
+                wins += result
+                order_wins += result
+
+            if order_wins > best_order_wins:
+                best_order_wins = order_wins
+                best_order = card_order.copy()
+
+        probability = wins / (2 * simulations_number * len(orders))
+
+        return probability, best_order
     
-    def simulate(self, play_hist, top_card, not_played_original, current_round, number_cards_played_in_round):
+    def simulate(self, play_hist, top_card, not_played_original, current_round, number_cards_played_in_round, card_order):
         #deu tudo errado vou refazer
         not_played = not_played_original.copy()
 
         my_rounds, opp_rounds = self.get_rounds_won(play_hist, top_card)
 
+        #Número de cartas que precisamos gerar
         cards_to_simulate = (4-number_cards_played_in_round-1) + (3-current_round)*3
 
-        simulated_cards = random.sample(not_played, min(cards_to_simulate, len(not_played)))
+        simulated_cards = random.sample(not_played, cards_to_simulate)
 
-        return 1 if win else 0
+        players_cards = [[], [], [], []]
+
+        #Já sabemos nossas cartas
+        players_cards[self.position] = card_order.copy()
+
+        current_player = (self.position + 1) % 4
+
+        #Preenchendo mãos
+        for card in simulated_cards:
+            #Esse while pula a gente
+            while current_player == self.position:
+                current_player = (current_player + 1) % 4
+
+            players_cards[current_player].append(card)
+
+            current_player = (current_player + 1) % 4
+        
+        wins = 0
+
+        start_player = current_player
+
+        for strategy in ("max", "min"):
+            current_player = start_player
+
+            hands = [hand.copy() for hand in players_cards]
+
+            # reinicia o placar para essa estratégia
+            my_rounds_sim = my_rounds
+            opp_rounds_sim = opp_rounds
+
+            first_round = True
+
+            for player in range(4):
+                if player == self.position:
+                    continue
+
+                if strategy == "max":
+                    hands[player].sort(
+                        key=lambda c: card_value(c, top_card),
+                        reverse=True
+                    )
+                else:
+                    hands[player].sort(
+                        key=lambda c: card_value(c, top_card)
+                    )
+
+            while my_rounds_sim < 2 and opp_rounds_sim < 2:
+
+                played_cards = []
+
+                if first_round and play_hist:
+                    last_round = play_hist[-1]
+                    start = (current_round - 1) * 4
+
+                    for play in last_round[start:]:
+                        if play[1] is not None:
+                            played_cards.append((play[0], play[1]))
+
+                    if played_cards:
+                        current_player = (played_cards[-1][0] + 1) % 4
+
+                    first_round = False
+
+                while len(played_cards) < 4:
+                    player = current_player
+
+                    card = hands[player].pop(0)
+
+                    played_cards.append((player, card))
+
+                    current_player = (current_player + 1) % 4
+
+                winner = max(
+                    played_cards,
+                    key=lambda x: card_value(x[1], top_card)
+                )[0]
+
+                if winner % 2 == self.position % 2:
+                    my_rounds_sim += 1
+                else:
+                    opp_rounds_sim += 1
+
+                current_player = winner
+
+            if my_rounds_sim >= 2:
+                wins += 1
+
+
+        return wins
 
     def _get_played_cards(self, current_play_list: list[PlayerDecision]):
         # NOTE:
@@ -208,7 +335,7 @@ class ProbabilisticStrategist(Player):
 
         return min(self.cards, key=lambda c: card_value(c, top_card))
 
-    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+    """def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # NOTE:
         # Ainda não utilizadas, porém podem ser úteis
         # current_position = partner_pos = self.position % 4
@@ -235,6 +362,10 @@ class ProbabilisticStrategist(Player):
         # print("play", play_hist)
         # print("score", current_score)
         # print("team", team_score)
+
+        #print(f"Rodada atual: {get_current_round(play_hist)}")
+        #print(f"Cartas jogadas: {get_cards_played(play_hist[-1]) if play_hist else []}")
+        #print(f"Rodadas vencidas (Nós / Eles): {self.get_rounds_won(play_hist, top_card)}")
 
         # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
         current_play_list = self._get_current_play_list(play_hist)
@@ -267,7 +398,16 @@ class ProbabilisticStrategist(Player):
                 [2, selected_card] if not self.truco_requested else [1, selected_card]
             )
 
-        return [1, selected_card]
+        return [1, selected_card]"""
+    
+    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+        # Calcula a melhor ordem de cartas
+        probability, best_order = self._get_probability_of_winning(
+            play_hist,
+            top_card,
+            self.cards
+        )
+        return [1,best_order[0]]
 
     def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # NOTE:
