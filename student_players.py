@@ -85,6 +85,13 @@ class ProbabilisticStrategist(Player):
 
         # Avaliamos a estratégia de jogada a partir do score da mão do jogador e do placar do time.
         # Em seguida, selecionar a carta a ser jogada com base no maior ou menor valor da carta
+
+        if self.current_hand_score >= 1_000 and self.count_manilhas_in_hand > 0:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
+        if self.current_hand_score >= 1_000:
+            return max(self.cards, key=lambda c: card_value(c, top_card))
+
         if (
             self.current_hand_score >= 800
             and self.count_manilhas_in_hand > 0
@@ -97,9 +104,6 @@ class ProbabilisticStrategist(Player):
 
         if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
             return max(self.cards, key=lambda c: card_value(c, top_card))
-
-        if self.current_hand_score < 800 and team_score > 0:
-            return min(self.cards, key=lambda c: card_value(c, top_card))
 
         return min(self.cards, key=lambda c: card_value(c, top_card))
 
@@ -148,7 +152,16 @@ class ProbabilisticStrategist(Player):
                 [2, selected_card] if not self.truco_requested else [1, selected_card]
             )
 
-        if self.current_hand_score >= 800 and team_score > 0:
+        if (
+            self.current_hand_score >= 800
+            and self.count_manilhas_in_hand > 0
+            and team_score > 0
+        ):
+            return (
+                [2, selected_card] if not self.truco_requested else [1, selected_card]
+            )
+
+        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
             return (
                 [2, selected_card] if not self.truco_requested else [1, selected_card]
             )
@@ -295,7 +308,7 @@ def create_pair():
     # Defina a dupla de jogadores a partir da classe criada
     return (
         ProbabilisticStrategist(
-            "000000", "ProbabilisticPlayer1", "img/custom/Headphone_Cat.jpg"
+            "000000", "Strategist1", "img/custom/Headphone_Cat.jpg"
         ),
-        ProbabilisticStrategist("100000", "ProbabilisticPlayer2"),
+        ProbabilisticStrategist("100000", "Strategist2", "img/none.jpg"),
     )
