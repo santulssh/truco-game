@@ -459,16 +459,16 @@ class ProbabilisticStrategist(Player):
             return max(self.cards, key=lambda c: card_value(c, top_card))
 
         if (
-            self.current_hand_score >= 800
+            self.current_hand_score >= 300
             and self.count_manilhas_in_hand > 0
             and team_score > 0
         ):
             return max(self.cards, key=lambda c: card_value(c, top_card))
 
-        if self.current_hand_score >= 800 and team_score > 0:
+        if self.current_hand_score >= 300 and team_score > 0:
             return max(self.cards, key=lambda c: card_value(c, top_card))
 
-        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+        if self.current_hand_score >= 300 and self.count_manilhas_in_hand > 0:
             return max(self.cards, key=lambda c: card_value(c, top_card))
 
         return min(self.cards, key=lambda c: card_value(c, top_card))
@@ -523,7 +523,7 @@ class ProbabilisticStrategist(Player):
             )
 
         if (
-            self.current_hand_score >= 800
+            self.current_hand_score >= 300
             and self.count_manilhas_in_hand > 0
             and team_score > 0
         ):
@@ -531,7 +531,7 @@ class ProbabilisticStrategist(Player):
                 [2, selected_card] if not self.truco_requested else [1, selected_card]
             )
 
-        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+        if self.current_hand_score >= 300 and self.count_manilhas_in_hand > 0:
             return (
                 [2, selected_card] if not self.truco_requested else [1, selected_card]
             )
@@ -576,13 +576,13 @@ class ProbabilisticStrategist(Player):
             return 2 if is_raise_allowed else 1
 
         if (
-            self.current_hand_score >= 800
+            self.current_hand_score >= 300
             and self.count_manilhas_in_hand > 0
             and team_score > 0
         ):
             return 2 if is_raise_allowed else 1
 
-        if self.current_hand_score >= 800 and self.count_manilhas_in_hand > 0:
+        if self.current_hand_score >= 300 and self.count_manilhas_in_hand > 0:
             return 2 if is_raise_allowed else 1
 
         if self.current_hand_score >= 800 and team_score > 0:
