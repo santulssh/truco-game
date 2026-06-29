@@ -129,13 +129,13 @@ class ProbabilisticStrategist(Player):
         # calcula a probabilidade de vencer a rodada
         not_played = get_cards_not_played(play_hist, top_card, cards)
 
-        current_round = get_current_round(play_hist)
+        current_round = get_current_round(play_hist)    
 
         number_cards_in_round = 0
         if play_hist:
             number_cards_in_round = len(get_cards_played(play_hist[-1])) % 4
 
-        simulations_number = 2000
+        simulations_number = 200
 
         wins = 0
         best_order = None
@@ -157,110 +157,248 @@ class ProbabilisticStrategist(Player):
                 best_order_wins = order_wins
                 best_order = card_order.copy()
 
-        probability = wins / (2 * simulations_number * len(orders))
+        probability = best_order_wins / simulations_number
 
         return probability, best_order
     
-    def simulate(self, play_hist, top_card, not_played_original, current_round, number_cards_played_in_round, card_order):
-        #deu tudo errado vou refazer
+    def _get_probability_of_winning_after_response(
+    self,
+    play_hist,
+    top_card,
+    cards
+):
+        # Cartas que ainda podem estar com os outros jogadores
+        not_played = get_cards_not_played(play_hist, top_card, cards)
+
+        current_round = get_current_round(play_hist)
+
+        number_cards_in_round = 0
+        if play_hist:
+            number_cards_in_round = (
+                len(get_cards_played(play_hist[-1])) % 4
+            )
+
+        simulations_number = 200
+
+        best_order = None
+        best_order_wins = -1
+
+        orders = self.permutations(cards)
+
+        for card_order in orders:
+
+            order_wins = 0
+
+            for _ in range(simulations_number):
+
+                order_wins += self.simulate_response(
+                    play_hist,
+                    top_card,
+                    not_played,
+                    current_round,
+                    number_cards_in_round,
+                    card_order
+                )
+
+            if order_wins > best_order_wins:
+                best_order_wins = order_wins
+                best_order = card_order.copy()
+
+        probability = best_order_wins / simulations_number
+
+        return probability, best_order
+    
+    def simulate(self, play_hist, top_card, not_played_original,
+             current_round, number_cards_played_in_round, card_order):
+
         not_played = not_played_original.copy()
 
         my_rounds, opp_rounds = self.get_rounds_won(play_hist, top_card)
 
-        #Número de cartas que precisamos gerar
-        cards_to_simulate = (4-number_cards_played_in_round-1) + (3-current_round)*3
+        # Número de cartas desconhecidas que ainda precisam ser distribuídas
+        cards_to_simulate = (
+            (4 - number_cards_played_in_round - 1)
+            + (3 - current_round) * 3
+        )
 
         simulated_cards = random.sample(not_played, cards_to_simulate)
 
         players_cards = [[], [], [], []]
 
-        #Já sabemos nossas cartas
-        players_cards[self.position] = card_order.copy()
+        # CORREÇÃO 1:
+        # A primeira carta da ordem será jogada AGORA.
+        # Portanto ela não permanece na nossa mão.
+        players_cards[self.position] = card_order[1:].copy()
 
         current_player = (self.position + 1) % 4
 
-        #Preenchendo mãos
+        # Distribui cartas aleatórias aos outros jogadores
         for card in simulated_cards:
-            #Esse while pula a gente
+
             while current_player == self.position:
                 current_player = (current_player + 1) % 4
 
             players_cards[current_player].append(card)
 
             current_player = (current_player + 1) % 4
-        
-        wins = 0
 
-        start_player = current_player
+        hands = [hand.copy() for hand in players_cards]
 
-        for strategy in ("max", "min"):
-            current_player = start_player
+        # Os adversários jogam em ordem aleatória
+        for player in range(4):
+            if player != self.position:
+                random.shuffle(hands[player])
 
-            hands = [hand.copy() for hand in players_cards]
+        my_rounds_sim = my_rounds
+        opp_rounds_sim = opp_rounds
 
-            # reinicia o placar para essa estratégia
-            my_rounds_sim = my_rounds
-            opp_rounds_sim = opp_rounds
+        first_round = True
 
-            first_round = True
+        while my_rounds_sim < 2 and opp_rounds_sim < 2:
 
-            for player in range(4):
-                if player == self.position:
-                    continue
+            played_cards = []
 
-                if strategy == "max":
-                    hands[player].sort(
-                        key=lambda c: card_value(c, top_card),
-                        reverse=True
-                    )
+            if first_round and play_hist:
+
+                last_round = play_hist[-1]
+                start = (current_round - 1) * 4
+
+                # Recupera as cartas já jogadas nesta rodada
+                for play in last_round[start:]:
+                    if play[1] is not None:
+                        played_cards.append((play[0], play[1]))
+
+                # CORREÇÃO 2:
+                # Simula nossa jogada imediatamente,
+                # pois o play() foi chamado exatamente agora.
+                played_cards.append((self.position, card_order[0]))
+
+                current_player = (self.position + 1) % 4
+
+                first_round = False
+
+            else:
+                current_player = self.position
+
+            while len(played_cards) < 4:
+
+                player = current_player
+
+                card = hands[player].pop(0)
+
+                played_cards.append((player, card))
+
+                current_player = (current_player + 1) % 4
+
+            winner = max(
+                played_cards,
+                key=lambda x: card_value(x[1], top_card)
+            )[0]
+
+            if winner % 2 == self.position % 2:
+                my_rounds_sim += 1
+            else:
+                opp_rounds_sim += 1
+
+            # O vencedor inicia a próxima rodada
+            current_player = winner
+
+        return 1 if my_rounds_sim >= 2 else 0
+    
+    def simulate_response(
+    self,
+    play_hist,
+    top_card,
+    not_played_original,
+    current_round,
+    number_cards_played_in_round,
+    card_order
+):
+        not_played = not_played_original.copy()
+
+        my_rounds, opp_rounds = self.get_rounds_won(play_hist, top_card)
+
+        # Aqui NÃO removemos uma carta da nossa mão.
+        cards_to_simulate = (
+            (4 - number_cards_played_in_round)
+            + (3 - current_round) * 3
+        )
+
+        simulated_cards = random.sample(not_played, cards_to_simulate)
+
+        players_cards = [[], [], [], []]
+        players_cards[self.position] = card_order.copy()
+
+        current_player = (self.position + 1) % 4
+
+        for card in simulated_cards:
+
+            while current_player == self.position:
+                current_player = (current_player + 1) % 4
+
+            players_cards[current_player].append(card)
+            current_player = (current_player + 1) % 4
+
+        hands = [hand.copy() for hand in players_cards]
+
+        # Greedy para os outros jogadores
+        for player in range(4):
+            if player != self.position:
+                hands[player].sort(
+                    key=lambda c: card_value(c, top_card),
+                    reverse=True
+                )
+
+        my_rounds_sim = my_rounds
+        opp_rounds_sim = opp_rounds
+
+        first_round = True
+
+        while my_rounds_sim < 2 and opp_rounds_sim < 2:
+
+            played_cards = []
+
+            if first_round and play_hist:
+
+                last_round = play_hist[-1]
+                start = (current_round - 1) * 4
+
+                for play in last_round[start:]:
+                    if play[1] is not None:
+                        played_cards.append((play[0], play[1]))
+
+                # Quem joga depois da última carta conhecida
+                if played_cards:
+                    current_player = (played_cards[-1][0] + 1) % 4
                 else:
-                    hands[player].sort(
-                        key=lambda c: card_value(c, top_card)
-                    )
+                    current_player = self.position
 
-            while my_rounds_sim < 2 and opp_rounds_sim < 2:
+                first_round = False
 
-                played_cards = []
+            # Cada jogador joga no máximo uma carta
+            while len(played_cards) < 4:
 
-                if first_round and play_hist:
-                    last_round = play_hist[-1]
-                    start = (current_round - 1) * 4
+                player = current_player
 
-                    for play in last_round[start:]:
-                        if play[1] is not None:
-                            played_cards.append((play[0], play[1]))
-
-                    if played_cards:
-                        current_player = (played_cards[-1][0] + 1) % 4
-
-                    first_round = False
-
-                while len(played_cards) < 4:
-                    player = current_player
-
+                if hands[player]:
                     card = hands[player].pop(0)
-
                     played_cards.append((player, card))
 
-                    current_player = (current_player + 1) % 4
+                current_player = (current_player + 1) % 4
 
-                winner = max(
-                    played_cards,
-                    key=lambda x: card_value(x[1], top_card)
-                )[0]
+            winner = max(
+                played_cards,
+                key=lambda x: card_value(x[1], top_card)
+            )[0]
 
-                if winner % 2 == self.position % 2:
-                    my_rounds_sim += 1
-                else:
-                    opp_rounds_sim += 1
+            if winner % 2 == self.position % 2:
+                my_rounds_sim += 1
+            else:
+                opp_rounds_sim += 1
 
-                current_player = winner
+            current_player = winner
 
-            if my_rounds_sim >= 2:
-                wins += 1
-
-
-        return wins
+        return 1 if my_rounds_sim >= 2 else 0
 
     def _get_played_cards(self, current_play_list: list[PlayerDecision]):
         # NOTE:
@@ -402,14 +540,13 @@ class ProbabilisticStrategist(Player):
     
     def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Calcula a melhor ordem de cartas
-        probability, best_order = self._get_probability_of_winning(
-            play_hist,
-            top_card,
-            self.cards
-        )
+        probability, best_order = self._get_probability_of_winning(play_hist, top_card, self.cards)
+        
+        #print(best_order[0], probability)
+
         return [1,best_order[0]]
 
-    def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+    """def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # NOTE:
         # Ainda não utilizado, pode ser útil
         # partner_pos = (self.position + 2) % 4
@@ -447,6 +584,37 @@ class ProbabilisticStrategist(Player):
 
         if self.current_hand_score >= 300 and self.count_manilhas_in_hand > 0:
             return 2 if is_raise_allowed else 1
+
+        if self.current_hand_score >= 800 and team_score > 0:
+            return 1
+
+        return 0"""
+
+    def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+
+        probability, _ = self._get_probability_of_winning_after_response(
+            play_hist,
+            top_card,
+            self.cards
+        )
+
+        #print(probability)
+
+        current_play_list = self._get_current_play_list(play_hist)
+        player_decision = current_play_list[-1] if current_play_list else []
+        status = player_decision[-1] if player_decision else None
+
+        is_raise_allowed = (
+            self._is_raise_allowed(status)
+            if type(status) is int or status is None
+            else False
+        )
+
+        if probability >= 0.85:
+            return 2 if is_raise_allowed else 1
+
+        if probability >= 0.60:
+            return 1
 
         return 0
 
