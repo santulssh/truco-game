@@ -129,13 +129,13 @@ class ProbabilisticStrategist(Player):
         # calcula a probabilidade de vencer a rodada
         not_played = get_cards_not_played(play_hist, top_card, cards)
 
-        current_round = get_current_round(play_hist)
+        current_round = get_current_round(play_hist)    
 
         number_cards_in_round = 0
         if play_hist:
             number_cards_in_round = len(get_cards_played(play_hist[-1])) % 4
 
-        simulations_number = 2000
+        simulations_number = 50
 
         wins = 0
         best_order = None
@@ -157,110 +157,106 @@ class ProbabilisticStrategist(Player):
                 best_order_wins = order_wins
                 best_order = card_order.copy()
 
-        probability = wins / (2 * simulations_number * len(orders))
+        probability = best_order_wins / simulations_number
 
         return probability, best_order
     
-    def simulate(self, play_hist, top_card, not_played_original, current_round, number_cards_played_in_round, card_order):
-        #deu tudo errado vou refazer
+    def simulate(self, play_hist, top_card, not_played_original,
+             current_round, number_cards_played_in_round, card_order):
+
         not_played = not_played_original.copy()
 
         my_rounds, opp_rounds = self.get_rounds_won(play_hist, top_card)
 
-        #Número de cartas que precisamos gerar
-        cards_to_simulate = (4-number_cards_played_in_round-1) + (3-current_round)*3
+        # Número de cartas desconhecidas que ainda precisam ser distribuídas
+        cards_to_simulate = (
+            (4 - number_cards_played_in_round - 1)
+            + (3 - current_round) * 3
+        )
 
         simulated_cards = random.sample(not_played, cards_to_simulate)
 
         players_cards = [[], [], [], []]
 
-        #Já sabemos nossas cartas
-        players_cards[self.position] = card_order.copy()
+        # CORREÇÃO 1:
+        # A primeira carta da ordem será jogada AGORA.
+        # Portanto ela não permanece na nossa mão.
+        players_cards[self.position] = card_order[1:].copy()
 
         current_player = (self.position + 1) % 4
 
-        #Preenchendo mãos
+        # Distribui cartas aleatórias aos outros jogadores
         for card in simulated_cards:
-            #Esse while pula a gente
+
             while current_player == self.position:
                 current_player = (current_player + 1) % 4
 
             players_cards[current_player].append(card)
 
             current_player = (current_player + 1) % 4
-        
-        wins = 0
 
-        start_player = current_player
+        hands = [hand.copy() for hand in players_cards]
 
-        for strategy in ("max", "min"):
-            current_player = start_player
+        # Os adversários jogam em ordem aleatória
+        for player in range(4):
+            if player != self.position:
+                random.shuffle(hands[player])
 
-            hands = [hand.copy() for hand in players_cards]
+        my_rounds_sim = my_rounds
+        opp_rounds_sim = opp_rounds
 
-            # reinicia o placar para essa estratégia
-            my_rounds_sim = my_rounds
-            opp_rounds_sim = opp_rounds
+        first_round = True
 
-            first_round = True
+        while my_rounds_sim < 2 and opp_rounds_sim < 2:
 
-            for player in range(4):
-                if player == self.position:
-                    continue
+            played_cards = []
 
-                if strategy == "max":
-                    hands[player].sort(
-                        key=lambda c: card_value(c, top_card),
-                        reverse=True
-                    )
-                else:
-                    hands[player].sort(
-                        key=lambda c: card_value(c, top_card)
-                    )
+            if first_round and play_hist:
 
-            while my_rounds_sim < 2 and opp_rounds_sim < 2:
+                last_round = play_hist[-1]
+                start = (current_round - 1) * 4
 
-                played_cards = []
+                # Recupera as cartas já jogadas nesta rodada
+                for play in last_round[start:]:
+                    if play[1] is not None:
+                        played_cards.append((play[0], play[1]))
 
-                if first_round and play_hist:
-                    last_round = play_hist[-1]
-                    start = (current_round - 1) * 4
+                # CORREÇÃO 2:
+                # Simula nossa jogada imediatamente,
+                # pois o play() foi chamado exatamente agora.
+                played_cards.append((self.position, card_order[0]))
 
-                    for play in last_round[start:]:
-                        if play[1] is not None:
-                            played_cards.append((play[0], play[1]))
+                current_player = (self.position + 1) % 4
 
-                    if played_cards:
-                        current_player = (played_cards[-1][0] + 1) % 4
+                first_round = False
 
-                    first_round = False
+            else:
+                current_player = self.position
 
-                while len(played_cards) < 4:
-                    player = current_player
+            while len(played_cards) < 4:
 
-                    card = hands[player].pop(0)
+                player = current_player
 
-                    played_cards.append((player, card))
+                card = hands[player].pop(0)
 
-                    current_player = (current_player + 1) % 4
+                played_cards.append((player, card))
 
-                winner = max(
-                    played_cards,
-                    key=lambda x: card_value(x[1], top_card)
-                )[0]
+                current_player = (current_player + 1) % 4
 
-                if winner % 2 == self.position % 2:
-                    my_rounds_sim += 1
-                else:
-                    opp_rounds_sim += 1
+            winner = max(
+                played_cards,
+                key=lambda x: card_value(x[1], top_card)
+            )[0]
 
-                current_player = winner
+            if winner % 2 == self.position % 2:
+                my_rounds_sim += 1
+            else:
+                opp_rounds_sim += 1
 
-            if my_rounds_sim >= 2:
-                wins += 1
+            # O vencedor inicia a próxima rodada
+            current_player = winner
 
-
-        return wins
+        return 1 if my_rounds_sim >= 2 else 0
 
     def _get_played_cards(self, current_play_list: list[PlayerDecision]):
         # NOTE:
@@ -402,11 +398,10 @@ class ProbabilisticStrategist(Player):
     
     def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Calcula a melhor ordem de cartas
-        probability, best_order = self._get_probability_of_winning(
-            play_hist,
-            top_card,
-            self.cards
-        )
+        probability, best_order = self._get_probability_of_winning(play_hist, top_card, self.cards)
+        
+        #print(best_order[0], probability)
+
         return [1,best_order[0]]
 
     def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
