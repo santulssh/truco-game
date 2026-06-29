@@ -4,12 +4,11 @@
 # Nome #02:                             João Rodolfo Berger Andrade
 # RA #02:                               306480
 
+import random
 from typing import NewType
 
 from basic_players import Player
 from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
-
-import random
 
 # Descreve o tipo de carta
 # 0: Rank da carta; 1: Suit da carta
@@ -27,45 +26,11 @@ PlayerDecision = NewType("PlayerDecision", list)
 # Descreve o estado atual de todas as jogadas registradas no jogo
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
-def get_cards_played(last_play_hist):
-    # Retornar todas as cartas jogadas na rodada atual
-    return [state[1] for state in last_play_hist if state[1] is not None]
 
-def get_cards_not_played(play_hist, top_card, cards):
-    played = []
+def _get_remaining_deck(known_cards: set[Card]):
+    default_deck = [(r, s) for r in RANK_ORDER for s in SUIT_ORDER]
+    return filter(lambda c: c not in known_cards, default_deck)
 
-    if play_hist:
-        played = get_cards_played(play_hist[-1]).copy()
-
-    played.append(top_card)
-    played.extend(cards)
-
-    all_cards = [(rank, suit) for suit in SUIT_ORDER for rank in RANK_ORDER]
-
-    return [card for card in all_cards if card not in played]
-
-def get_current_round(play_hist):
-    #calcula o número do round atual
-    if not play_hist:
-        return 1
-
-    cards_played = get_cards_played(play_hist[-1])
-    return len(cards_played) // 4 + 1
-
-def get_hand_score(cards: list[Card], top_card: Card):
-    # Calcula o valor da mão com base nas cartas
-    return sum(card_value(card, top_card) for card in cards)
-
-
-def is_manilha(card: Card, top_card: Card):
-    # Verifica se uma carta é uma manilha com base no rank da vira
-    return card[0] == manilha_rank(top_card[0])
-
-
-def count_manilhas_hand(cards: list[Card], top_card: Card):
-    # Calcula a quantidade de manilhas em mãos
-    return sum(1 for card in cards if is_manilha(card, top_card))
-  
 
 class ProbabilisticStrategist(Player):
     current_hand_score: int = 0
@@ -74,7 +39,7 @@ class ProbabilisticStrategist(Player):
 
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
-        
+
     def get_rounds_won(self, play_hist, top_card):
         # Calcula quantas rodadas foram ganhas tanto por nós quanto pelo oponente
 
@@ -105,7 +70,7 @@ class ProbabilisticStrategist(Player):
                 opp_rounds += 1
 
         return my_rounds, opp_rounds
-    
+
     def permutations(self, cards):
         # Gera todas as possíveis ordens que podemos jogar nossas cartas para podermos simulá-las
 
@@ -131,6 +96,8 @@ class ProbabilisticStrategist(Player):
 
         return orders
 
+    def _get_cards_not_played(self, top_card: Card, play_hist: GameHist):
+        played = []
 
     def _get_probability_of_winning(self, play_hist, top_card, cards):
         # Calcula a probabilidade de vencer a mão considerando todas as ordens das cartas
@@ -138,12 +105,12 @@ class ProbabilisticStrategist(Player):
         # Cartas que podem estar com os outros jogadores
         not_played = get_cards_not_played(play_hist, top_card, cards)
 
-        current_round = get_current_round(play_hist)    
+        current_round = self.get_current_round(play_hist)
 
         # Quantas cartas já foram jogadas na rodada
         number_cards_in_round = 0
         if play_hist:
-            number_cards_in_round = len(get_cards_played(play_hist[-1])) % 4
+            number_cards_in_round = len(self._get_played_cards(play_hist[-1])) % 4
 
         simulations_number = 200
 
@@ -155,12 +122,18 @@ class ProbabilisticStrategist(Player):
         orders = self.permutations(cards)
 
         for card_order in orders:
-
             order_wins = 0
 
             # Executa um certo número de simulações aleatórias
             for i in range(simulations_number):
-                result = self.simulate(play_hist, top_card, not_played, current_round, number_cards_in_round, card_order)
+                result = self.simulate(
+                    play_hist,
+                    top_card,
+                    not_played,
+                    current_round,
+                    number_cards_in_round,
+                    card_order,
+                )
 
                 wins += result
                 order_wins += result
@@ -181,13 +154,11 @@ class ProbabilisticStrategist(Player):
 
         not_played = get_cards_not_played(play_hist, top_card, cards)
 
-        current_round = get_current_round(play_hist)
+        current_round = self.get_current_round(play_hist)
 
         number_cards_in_round = 0
         if play_hist:
-            number_cards_in_round = (
-                len(get_cards_played(play_hist[-1])) % 4
-            )
+            number_cards_in_round = len(self._get_played_cards(play_hist[-1])) % 4
 
         simulations_number = 200
 
@@ -197,7 +168,6 @@ class ProbabilisticStrategist(Player):
         orders = self.permutations(cards)
 
         for card_order in orders:
-
             order_wins = 0
 
             for i in range(simulations_number):
@@ -236,7 +206,6 @@ class ProbabilisticStrategist(Player):
 
         # Distribui cartas aleatórias aos outros jogadores
         for card in simulated_cards:
-
             while current_player == self.position:
                 current_player = (current_player + 1) % 4
 
@@ -258,11 +227,9 @@ class ProbabilisticStrategist(Player):
 
         # Enquanto ninguém ganha
         while my_rounds_sim < 2 and opp_rounds_sim < 2:
-
             played_cards = []
 
             if first_round and play_hist:
-
                 last_round = play_hist[-1]
                 start = (current_round - 1) * 4
 
@@ -282,7 +249,6 @@ class ProbabilisticStrategist(Player):
 
             # Completa a simulação
             while len(played_cards) < 4:
-
                 player = current_player
 
                 card = hands[player].pop(0)
@@ -325,7 +291,6 @@ class ProbabilisticStrategist(Player):
 
         # Distribui cartas aleatórias
         for card in simulated_cards:
-
             while current_player == self.position:
                 current_player = (current_player + 1) % 4
 
@@ -337,10 +302,7 @@ class ProbabilisticStrategist(Player):
         # Greedy para os outros jogadores
         for player in range(4):
             if player != self.position:
-                hands[player].sort(
-                    key=lambda c: card_value(c, top_card),
-                    reverse=True
-                )
+                hands[player].sort(key=lambda c: card_value(c, top_card), reverse=True)
 
         my_rounds_sim = my_rounds
         opp_rounds_sim = opp_rounds
@@ -348,11 +310,9 @@ class ProbabilisticStrategist(Player):
         first_round = True
 
         while my_rounds_sim < 2 and opp_rounds_sim < 2:
-
             played_cards = []
 
             if first_round and play_hist:
-
                 last_round = play_hist[-1]
                 start = (current_round - 1) * 4
 
@@ -371,7 +331,6 @@ class ProbabilisticStrategist(Player):
 
             # Completa a rodada
             while len(played_cards) < 4:
-
                 player = current_player
 
                 if hands[player]:
@@ -479,26 +438,8 @@ class ProbabilisticStrategist(Player):
 
         # Consideramos a pontuação da partida e armazenamos o estado atual do nosso time
         team_score = self._get_current_team_score(score_hist)
-
         # Selecionamos a carta a partir do estado do jogo
         selected_card = self._select_card_to_play(top_card, play_hist, team_score)
-
-        # NOTE:
-        # Debug apenas
-        # print("play | position", current_position)
-        # print("play | partner pos", partner_pos)
-        # print("play | vira", top_card)
-        # print("play | hand_score", current_hand_score)
-        # print("play | current_hand", current_hand)
-        # print("play | manilhas_hand", count_manilhas)
-        # print("play", play_hist)
-        # print("score", current_score)
-        # print("team", team_score)
-
-        #print(f"Rodada atual: {get_current_round(play_hist)}")
-        #print(f"Cartas jogadas: {get_cards_played(play_hist[-1]) if play_hist else []}")
-        #print(f"Rodadas vencidas (Nós / Eles): {self.get_rounds_won(play_hist, top_card)}")
-
         # Armazenamos as jogadas conhecidas na partida e o último tipo de jogada feita
         current_play_list = self._get_current_play_list(play_hist)
 
@@ -531,14 +472,14 @@ class ProbabilisticStrategist(Player):
             )
 
         return [1, selected_card]"""
-    
+
     def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Calcula a melhor ordem de cartas
-        probability, best_order = self._get_probability_of_winning(play_hist, top_card, self.cards)
-        
-        #print(best_order[0], probability)
+        probability, best_order = self._get_probability_of_winning(top_card, play_hist)
 
-        return [1,best_order[0]]
+        # print(best_order[0], probability)
+
+        return [1, best_order[0]]
 
     """def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # NOTE:
@@ -588,7 +529,7 @@ class ProbabilisticStrategist(Player):
         # Intuitivo
         probability, _ = self._get_probability_of_winning_after_response(play_hist, top_card, self.cards)
 
-        #print(probability)
+        # print(probability)
 
         current_play_list = self._get_current_play_list(play_hist)
         player_decision = current_play_list[-1] if current_play_list else []
