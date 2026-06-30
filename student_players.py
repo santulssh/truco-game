@@ -37,8 +37,8 @@ class ProbabilisticStrategist(Player):
     count_manilhas_in_hand: int = 0
     truco_requested = False
 
-    def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
-        super().__init__(ra, name, image_path)
+    def __init__(self, ra: str, name: str):
+        super().__init__(ra, name)
 
     def get_rounds_won(self, play_hist, top_card):
         # Calcula quantas rodadas foram ganhas tanto por nós quanto pelo oponente
@@ -554,8 +554,6 @@ def pair_name():
 def create_pair():
     # Defina a dupla de jogadores a partir da classe criada
     return (
-        ProbabilisticStrategist(
-            "000000", "Strategist1", "img/custom/Headphone_Cat.jpg"
-        ),
-        ProbabilisticStrategist("100000", "Strategist2", "img/none.jpg"),
+        ProbabilisticStrategist("220449", "Lucas H."),
+        ProbabilisticStrategist("306480", "João R. Berger"),
     )
