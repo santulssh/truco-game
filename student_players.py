@@ -5,10 +5,10 @@
 # RA #02:                               306480
 
 import random
-from typing import NewType
+from typing import NewType, cast
 
 from basic_players import Player
-from judge import RANK_ORDER, SUIT_ORDER, card_value, manilha_rank
+from judge import RANK_ORDER, SUIT_ORDER, card_value, generate_deck, manilha_rank
 
 # Descreve o tipo de carta
 # 0: Rank da carta; 1: Suit da carta
@@ -27,9 +27,9 @@ PlayerDecision = NewType("PlayerDecision", list)
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
 
-def _get_remaining_deck(known_cards: set[Card]):
-    default_deck = [(r, s) for r in RANK_ORDER for s in SUIT_ORDER]
-    return filter(lambda c: c not in known_cards, default_deck)
+def _get_remaining_deck(known_cards: set[Card]) -> list[Card]:
+    default_deck = cast(list[Card], generate_deck())
+    return list(filter(lambda card: card not in known_cards, default_deck))
 
 
 class ProbabilisticStrategist(Player):
