@@ -57,6 +57,10 @@ class ProbabilisticStrategist(Player):
 
     def __init__(self, ra: str, name: str, image_path="img/none.jpg"):
         super().__init__(ra, name, image_path)
+
+    def _get_current_play_list(self, play_hist: GameHist):
+        # Retorna jogadas da partida atual
+        return play_hist[-1] if len(play_hist) > 0 else []
         
     def get_rounds_won(self, play_hist, top_card):
         # Calcula quantas rodadas foram ganhas tanto por nós quanto pelo oponente
@@ -383,13 +387,56 @@ class ProbabilisticStrategist(Player):
             return True
         return False
     
-    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
-        # Calcula a melhor ordem de cartas
-        probability, best_order = self._get_probability_of_winning(play_hist, top_card, self.cards)
-        
-        # print(best_order[0], probability)
+    def _can_request_truco(self, play_hist):
+        current_play_list = self._get_current_play_list(play_hist)
 
-        return [1,best_order[0]]
+        # Nunca houve truco
+        if not current_play_list:
+            return True
+
+        last_raise_player = None
+
+        # Procura o último pedido/aumento de truco
+        for decision in current_play_list:
+            if type(decision[-1]) is int:
+                last_raise_player = decision[0]
+
+        # Nunca houve pedido
+        if last_raise_player is None:
+            return True
+
+        # Se o último aumento foi da nossa dupla, não podemos aumentar de novo.
+        if last_raise_player % 2 == self.position % 2:
+            return False
+
+        # O último aumento foi dos adversários.
+        return True
+    
+    def _get_last_truco_status(self, play_hist):
+        current_play_list = self._get_current_play_list(play_hist)
+
+        # Procura o último evento relacionado ao truco
+        for decision in reversed(current_play_list):
+            status = decision[-1]
+
+            if type(status) is int or status in ("ACEITOU", "CORREU"):
+                return status
+
+        return None
+        
+    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+        probability, best_order = self._get_probability_of_winning(play_hist, top_card, self.cards)
+
+        # print(probability)
+
+        status = self._get_last_truco_status(play_hist)
+
+        is_raise_allowed = self._is_raise_allowed(status)
+
+        if probability >= 0.8 and is_raise_allowed and self._can_request_truco(play_hist):
+            return [2, best_order[0]]   # Pede truco
+
+        return [1, best_order[0]]       # Joga normalmente
 
     def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Intuitivo
