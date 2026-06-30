@@ -363,9 +363,11 @@ class ProbabilisticStrategist(Player):
             if current_play[1] is not None
         ]
 
-    def _sort_hand_by_score(self, top_card: Card):
+    def _sort_hand_by_score(self, top_card: Card) -> list[Card]:
         # Retorna as cartas em mãos ordenadas a partir do valor das cartas
-        return sorted(self.cards, key=lambda card: card_value(card, top_card), reverse=True)
+        return sorted(
+            self.cards, key=lambda card: card_value(card, top_card), reverse=True
+        )
 
     def _is_manilha(self, card: Card, top_card: Card):
         # Verifica se uma carta é uma manilha com base no rank da vira
