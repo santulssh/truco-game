@@ -16,7 +16,7 @@
 - [x] [Feature]: Caso um dos jogadoes jogue uma manilha e algum jogador da dupla possua uma manilha
       devemos verificar se é melhor empatar gastando uma manilha ou se é melhor perder aquela rodada e manter as cartas mais fortes para uma outra rodada.
 - [x] [Feature]: Caso não seja possível ganhar a rodada com as cartas que possui, decidir jogar as cartas de menor valor.
-- [ ] [Feature]: Considerar empates na simulação. Definimos errôneamente quem começa a rodada nesse caso e quantos pontos precisamos fazer.
+- [x] [Feature]: Considerar empates na simulação. Definimos errôneamente quem começa a rodada nesse caso e quantos pontos precisamos fazer.
 
 
 

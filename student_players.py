@@ -214,6 +214,7 @@ class ProbabilisticStrategist(Player):
 
         # Mão simulada de cada jogador
         players_cards = [[], [], [], []]
+        round_winners = []
 
         # A primeira carta da ordem será jogada imediatamente
         # Ela não fica na nossa mão
@@ -264,9 +265,6 @@ class ProbabilisticStrategist(Player):
 
                 first_round = False
 
-            else:
-                current_player = self.position
-
             # Completa a simulação
             while len(played_cards) < 4:
 
@@ -278,7 +276,51 @@ class ProbabilisticStrategist(Player):
 
                 current_player = (current_player + 1) % 4
 
-            winner = max(played_cards, key=lambda x: card_value(x[1], top_card))[0]
+            values = [card_value(card, top_card) for _, card in played_cards]
+            best = max(values)
+
+            if values.count(best) > 1:
+                # Empate
+                if len(round_winners) == 0:
+                    # Se empatar na primeira rodada, quem ganhar a próxima ganha
+                    winner = "BOTH"
+                    round_winners.append(winner)
+                    my_rounds_sim += 1
+                    opp_rounds_sim += 1
+                    for player, card in played_cards:
+                        if card_value(card, top_card) == best:
+                            current_player = player
+                            break
+                    continue
+
+                elif len(round_winners) == 1:
+                    # Se empatar na segunda rodada, vence o vencedor da primeira rodada...
+                    if round_winners[0] != "BOTH":
+                        winner = round_winners[0]
+
+                    else:
+                        # A não ser que a primeira rodada também tenha empatado
+                        winner = "BOTH"
+                        round_winners.append(winner)
+                        for player, card in played_cards:
+                            if card_value(card, top_card) == best:
+                                current_player = player
+                                break
+                        continue
+
+                elif len(round_winners) == 2:
+                    # Se empatar na terceira rodada, vence o vencedor da primeira rodada...
+                    if round_winners[1] != "BOTH":
+                        winner = round_winners[0]
+                    
+                    else:
+                        # A não ser que as três rodadas tenham empatado!
+                        # Vamos retornar 1 porque tanto faz jogar essa rodada ou não jogar
+                        return 1
+
+            else:
+                winner = max(played_cards, key=lambda x: card_value(x[1], top_card))[0]
+                round_winners.append(winner)
 
             if winner % 2 == self.position % 2:
                 my_rounds_sim += 1
@@ -286,7 +328,15 @@ class ProbabilisticStrategist(Player):
                 opp_rounds_sim += 1
 
             # O vencedor inicia a próxima rodada
-            current_player = winner
+            if winner != "BOTH":
+                current_player = winner
+
+            else:
+                # Quem abriu o empate começa a próxima rodada
+                for player, card in played_cards:
+                    if card_value(card, top_card) == best:
+                        current_player = player
+                        break
 
         # Retorna vitória ou derrota
         return 1 if my_rounds_sim >= 2 else 0
@@ -304,6 +354,7 @@ class ProbabilisticStrategist(Player):
         simulated_cards = random.sample(not_played, cards_to_simulate)
 
         players_cards = [[], [], [], []]
+        round_winners = []
 
         # Já sabemos nossa mão
         players_cards[self.position] = card_order.copy()
@@ -367,16 +418,67 @@ class ProbabilisticStrategist(Player):
 
                 current_player = (current_player + 1) % 4
 
-            # Vencedor da rodada
-            winner = max(played_cards, key=lambda x: card_value(x[1], top_card))[0]
+            values = [card_value(card, top_card) for _, card in played_cards]
+            best = max(values)
+
+            if values.count(best) > 1:
+                # Empate
+                if len(round_winners) == 0:
+                    # Se empatar na primeira rodada, quem ganhar a próxima ganha
+                    winner = "BOTH"
+                    round_winners.append(winner)
+                    my_rounds_sim += 1
+                    opp_rounds_sim += 1
+                    for player, card in played_cards:
+                        if card_value(card, top_card) == best:
+                            current_player = player
+                            break
+                    continue
+
+                elif len(round_winners) == 1:
+                    # Se empatar na segunda rodada, vence o vencedor da primeira rodada...
+                    if round_winners[0] != "BOTH":
+                        winner = round_winners[0]
+
+                    else:
+                        # A não ser que a primeira rodada também tenha empatado
+                        winner = "BOTH"
+                        round_winners.append(winner)
+                        for player, card in played_cards:
+                            if card_value(card, top_card) == best:
+                                current_player = player
+                                break
+                        continue
+
+                elif len(round_winners) == 2:
+                    # Se empatar na terceira rodada, vence o vencedor da primeira rodada...
+                    if round_winners[1] != "BOTH":
+                        winner = round_winners[0]
+                    
+                    else:
+                        # A não ser que as três rodadas tenham empatado!
+                        # Vamos retornar 1 porque tanto faz jogar essa rodada ou não jogar
+                        return 1
+
+            else:
+                winner = max(played_cards, key=lambda x: card_value(x[1], top_card))[0]
+                round_winners.append(winner)
 
             if winner % 2 == self.position % 2:
                 my_rounds_sim += 1
             else:
                 opp_rounds_sim += 1
 
-            # Vencedor começa a próxima rodada
-            current_player = winner
+            # O vencedor inicia a próxima rodada
+            if winner != "BOTH":
+                current_player = winner
+
+            else:
+                # Quem abriu o empate começa a próxima rodada
+                for player, card in played_cards:
+                    if card_value(card, top_card) == best:
+                        current_player = player
+                        break
         
         # Retorna vitória ou derrota
         return 1 if my_rounds_sim >= 2 else 0
@@ -433,7 +535,7 @@ class ProbabilisticStrategist(Player):
 
         is_raise_allowed = self._is_raise_allowed(status)
 
-        if probability >= 0.8 and is_raise_allowed and self._can_request_truco(play_hist):
+        if probability >= 0.95 and is_raise_allowed and self._can_request_truco(play_hist):
             return [2, best_order[0]]   # Pede truco
 
         return [1, best_order[0]]       # Joga normalmente
@@ -470,5 +572,5 @@ def create_pair():
         ProbabilisticStrategist(
             "000000", "Strategist1", "img/custom/Headphone_Cat.jpg"
         ),
-        ProbabilisticStrategist("100000", "Strategist2", "img/none.jpg"),
+        ProbabilisticStrategist("100000", "Strategist2", "img/custom/Lil_Duck.jpeg"),
     )
