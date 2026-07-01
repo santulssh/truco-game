@@ -552,10 +552,10 @@ class ProbabilisticStrategist(Player):
 
         is_raise_allowed = (self._is_raise_allowed(status) if type(status) is int or status is None else False)
 
-        if probability >= 0.85:
+        if probability >= 0.9:
             return 2 if is_raise_allowed else 1
 
-        if probability >= 0.60:
+        if probability >= 0.7:
             return 1
 
         return 0
