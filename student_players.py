@@ -28,7 +28,9 @@ PlayerDecision = NewType("PlayerDecision", list)
 # Descreve o estado atual de todas as jogadas registradas no jogo
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
+# Variáveis para a simulação
 MAX_SIMULATIONS = 200
+CONFIDENCE_THRESHOLD = 0.05
 
 
 def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
@@ -207,8 +209,10 @@ class ProbabilisticStrategist(Player):
         all_valid_arrange = self._get_current_order_permutation()
 
         for card_order in all_valid_arrange:
-            current_win = sum(
-                self._simulate_monte_carlo(
+            current_win = 0
+
+            for sim in range(MAX_SIMULATIONS):
+                current_win += self._simulate_monte_carlo(
                     top_card,
                     current_round,
                     number_of_cards_in_round,
@@ -217,8 +221,14 @@ class ProbabilisticStrategist(Player):
                     team_rounds_wins,
                     opp_rounds_wins,
                 )
-                for _ in range(MAX_SIMULATIONS)
-            )
+
+                current_probability = current_win / (sim + 1)
+                if (
+                    best_order_wins > 0
+                    and (current_probability + CONFIDENCE_THRESHOLD) * MAX_SIMULATIONS
+                    < best_order_wins
+                ):
+                    break
 
             # Guarda a melhor ordem
             if current_win > best_order_wins:
@@ -258,8 +268,10 @@ class ProbabilisticStrategist(Player):
         all_valid_arrange = self._get_current_order_permutation()
 
         for card_order in all_valid_arrange:
-            current_win = sum(
-                self._simulate_monte_carlo(
+            current_win = 0
+
+            for sim in range(MAX_SIMULATIONS):
+                current_win += self._simulate_monte_carlo(
                     top_card,
                     current_round,
                     number_of_cards_in_round,
@@ -268,8 +280,14 @@ class ProbabilisticStrategist(Player):
                     team_rounds_wins,
                     opp_rounds_wins,
                 )
-                for _ in range(MAX_SIMULATIONS)
-            )
+
+                current_probability = current_win / (sim + 1)
+                if (
+                    best_order_wins > 0
+                    and (current_probability + CONFIDENCE_THRESHOLD) * MAX_SIMULATIONS
+                    < best_order_wins
+                ):
+                    break
 
             # Guarda a melhor ordem
             if current_win > best_order_wins:
