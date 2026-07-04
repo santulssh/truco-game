@@ -149,18 +149,18 @@ class ProbabilisticStrategist(Player):
 
         # Distribuição dinâmica das cartas restantes aos outros jogadores através das quantidade de
         # Digamos que cada um dos outros jogadores precisa de 'X' cartas dependendo do estado do jogo
-        players_cards = {cast(int, self.position): deque(card_order.copy())}
-        others_players = [p for p in range(4) if p != self.position]
+        players_cards: dict[int, deque[Card]] = {}
 
         index = 0
-        for p in others_players:
-            players_cards[p] = deque(
+        for position in range(4):
+            if position == self.position:
+                players_cards[position] = deque(card_order.copy())
+                continue
+
+            players_cards[position] = deque(
                 pick_random_order[index : index + cards_per_player]
             )
-            random.shuffle(players_cards[p])
             index += cards_per_player
-
-        players_cards = dict(sorted(players_cards.items()))
 
         team_rounds_sim, opp_rounds_sim = team_rounds_wins, opp_rounds_wins
 
