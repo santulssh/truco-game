@@ -27,7 +27,8 @@ PlayerDecision = NewType("PlayerDecision", list)
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
 
-def _get_remaining_deck(known_cards: set[Card]) -> list[Card]:
+def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
+    # Retornar todas as cartas não jogadas na rodada atual.
     default_deck = cast(list[Card], generate_deck())
     return list(filter(lambda card: card not in known_cards, default_deck))
 
