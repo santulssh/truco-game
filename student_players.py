@@ -5,6 +5,7 @@
 # RA #02:                               306480
 
 import random
+from collections import deque
 from itertools import permutations
 from typing import NewType, cast
 
@@ -148,12 +149,14 @@ class ProbabilisticStrategist(Player):
 
         # Distribuição dinâmica das cartas restantes aos outros jogadores através das quantidade de
         # Digamos que cada um dos outros jogadores precisa de 'X' cartas dependendo do estado do jogo
-        players_cards = {cast(int, self.position): card_order.copy()}
+        players_cards = {cast(int, self.position): deque(card_order.copy())}
         others_players = [p for p in range(4) if p != self.position]
 
         index = 0
         for p in others_players:
-            players_cards[p] = pick_random_order[index : index + cards_per_player]
+            players_cards[p] = deque(
+                pick_random_order[index : index + cards_per_player]
+            )
             random.shuffle(players_cards[p])
             index += cards_per_player
 
@@ -166,33 +169,36 @@ class ProbabilisticStrategist(Player):
             opp_score = 0
             for pos in players_cards.keys():
                 pos_next = (pos + 1) % 4
-                values: dict[int, list[int]] = dict()
 
                 if pos == 3 or not players_cards[pos] or not players_cards[pos_next]:
                     break
 
-                values[pos], values[pos_next] = (
-                    [card_value(card, top_card) for card in players_cards[pos]],
-                    [card_value(card, top_card) for card in players_cards[pos_next]],
+                player1, player2 = (
+                    (
+                        pos,
+                        card_value(players_cards[pos].popleft(), top_card),
+                    ),
+                    (
+                        pos_next,
+                        card_value(players_cards[pos_next][0], top_card),
+                    ),
                 )
 
-                if values[pos][0] > values[pos_next][0]:
+                if player1[1] > player2[1]:
                     # Condição de Vitória
-                    if pos % 2 == self.position % 2:
+                    if player1[0] % 2 == self.position % 2:
                         team_score += 1
                     else:
                         opp_score += 1
-                elif values[pos][0] < values[pos_next][0]:
+                elif player1[1] < player2[1]:
                     # Condição de Derrota
-                    if pos % 2 == self.position % 2:
+                    if player1[0] % 2 == self.position % 2:
                         opp_score += 1
                     else:
                         team_score += 1
                 else:
                     opp_score += 1
                     team_score += 1
-
-                players_cards[pos].pop(0)
 
             if team_score > opp_score:
                 team_rounds_sim += 1
