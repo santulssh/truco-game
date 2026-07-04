@@ -28,6 +28,8 @@ PlayerDecision = NewType("PlayerDecision", list)
 # Descreve o estado atual de todas as jogadas registradas no jogo
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
+MAX_SIMULATIONS = 200
+
 
 def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
     # Retornar todas as cartas não jogadas na rodada atual.
@@ -47,6 +49,10 @@ def _check_truco_requested(current_play_hist: list[PlayerDecision]):
 class ProbabilisticStrategist(Player):
     def __init__(self, ra: str, name: str):
         super().__init__(ra, name)
+
+    def _get_current_round(self, cards_played: list[Card]):
+        # Retorna o número da rodada atual
+        return len(cards_played) // 4 + 1 if cards_played else 1
 
     def _get_rounds_won(self, top_card: Card, current_play_hist: list[PlayerDecision]):
         # Calcula a quantidade de rodadas ganhas pelo time e pelos oponentes
@@ -81,10 +87,6 @@ class ProbabilisticStrategist(Player):
                 opp_rounds_wins += 1
 
         return team_rounds_wins, opp_rounds_wins
-
-    def _get_current_round(self, cards_played: list[Card]):
-        # Retorna o número da rodada atual
-        return len(cards_played) // 4 + 1 if cards_played else 1
 
     def _get_cards_played(self, current_play_list: list[PlayerDecision]) -> list[Card]:
         # Retornar todas as cartas jogadas na rodada atual
@@ -174,24 +176,25 @@ class ProbabilisticStrategist(Player):
         return 1 if team_rounds_sim >= 2 else 0
 
     def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
-        # Estado da partida atual considerando as decisões dos jogadores
+        # Estado da partida atual considerando as decisões dos jogadores.
         current_play_hist = self._get_current_play_list(play_hist)
+
+        # O número atual da rodada e a quantidade de cartas conhecidas jogadas.
+        cards_played = self._get_cards_played(current_play_hist)
+        current_round = self._get_current_round(cards_played)
+        number_of_cards_in_round = len(cards_played) % 4
+
+        # O placar de quantidade de rodadas vencidas na partida atual
         team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
             top_card, current_play_hist
         )
 
         # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
         # conhecidas pelo jogador e as demais cartas ainda não jogadas
-        cards_played = self._get_cards_played(current_play_hist)
         known_cards: list[Card] = [top_card] + self.cards + cards_played
         remaining_cards = _get_remaining_deck(known_cards)
 
-        # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
-        # para os oponentes, além da atual quantidade de cartas na mesa
-        current_round = self._get_current_round(cards_played)
-        number_of_cards_in_round = len(cards_played) % 4
-
-        simulations = 200
+        # A partir do estado da partida atual vamos simular possíveis partidas
         best_order_wins = -1
         best_order: list[Card] = []
 
@@ -209,7 +212,7 @@ class ProbabilisticStrategist(Player):
                     team_rounds_wins,
                     opp_rounds_wins,
                 )
-                for _ in range(simulations)
+                for _ in range(MAX_SIMULATIONS)
             )
 
             # Guarda a melhor ordem
@@ -217,7 +220,7 @@ class ProbabilisticStrategist(Player):
                 best_order_wins = current_win
                 best_order = card_order.copy()
 
-        probability = best_order_wins / simulations
+        probability = best_order_wins / MAX_SIMULATIONS
 
         # Válidamos se é possível pedir truco se nenhum truco foi feito
         if probability >= 0.9 and not _check_truco_requested(current_play_hist):
@@ -227,24 +230,23 @@ class ProbabilisticStrategist(Player):
     def respond(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Estado da partida atual considerando as decisões dos jogadores
         current_play_hist = self._get_current_play_list(play_hist)
-        player_decision = current_play_hist[-1] if current_play_hist else []
-        status = player_decision[-1] if player_decision else None
+
+        # O número atual da rodada e a quantidade de cartas conhecidas jogadas.
+        cards_played = self._get_cards_played(current_play_hist)
+        current_round = self._get_current_round(cards_played)
+        number_of_cards_in_round = len(cards_played) % 4
+
+        # O placar de quantidade de rodadas vencidas na partida atual
         team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
             top_card, current_play_hist
         )
 
         # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
         # conhecidas pelo jogador e as demais cartas ainda não jogadas
-        cards_played = self._get_cards_played(current_play_hist)
         known_cards: list[Card] = [top_card] + self.cards + cards_played
         remaining_cards = _get_remaining_deck(known_cards)
 
-        # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
-        # para os oponentes, além da atual quantidade de cartas na mesa
-        current_round = self._get_current_round(cards_played)
-        number_of_cards_in_round = len(cards_played) % 4
-
-        simulations = 200
+        # A partir do estado da partida atual vamos simular possíveis partidas
         best_order_wins = -1
 
         # Receber todas as possibilidades de organizar as cartas da mão atual.
@@ -261,16 +263,18 @@ class ProbabilisticStrategist(Player):
                     team_rounds_wins,
                     opp_rounds_wins,
                 )
-                for _ in range(simulations)
+                for _ in range(MAX_SIMULATIONS)
             )
 
             # Guarda a melhor ordem
             if current_win > best_order_wins:
                 best_order_wins = current_win
 
-        probability = best_order_wins / simulations
+        probability = best_order_wins / MAX_SIMULATIONS
 
         # Verifica se é válido aumentar o valor do truco
+        player_decision = current_play_hist[-1] if current_play_hist else []
+        status = player_decision[-1] if player_decision else None
         is_raise_allowed = (
             True if status is None or (type(status) is int and status < 12) else False
         )
