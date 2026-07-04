@@ -133,22 +133,13 @@ class ProbabilisticStrategist(Player):
     def _simulate_monte_carlo(
         self,
         top_card: Card,
-        current_play_hist: list[PlayerDecision],
+        current_round: int,
+        number_of_cards_in_round: int,
         card_order: list[Card],
+        remaining_cards: list[Card],
+        team_rounds_wins: int,
+        opp_rounds_wins: int,
     ):
-        # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
-        # conhecidas pelo jogador e as demais cartas ainda não jogadas
-        cards_played = self._get_cards_played(current_play_hist)
-        known_cards = cast(list[Card], (list(top_card) + self.cards + cards_played))
-        remaining_cards = _get_remaining_deck(known_cards)
-
-        # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
-        # para os oponentes, além da atual quantidade de cartas na mesa
-        current_round = self._get_current_round(cards_played)
-        number_of_cards_in_round = len(cards_played) % 4
-        team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
-            top_card, current_play_hist
-        )
 
         # Quantidade de cartas desconhecidas na atual partida a serem distribuídas
         cards_per_player = 4 - current_round
@@ -213,6 +204,20 @@ class ProbabilisticStrategist(Player):
     def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
         # Estado da partida atual considerando as decisões dos jogadores
         current_play_hist = self._get_current_play_list(play_hist)
+        team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
+            top_card, current_play_hist
+        )
+
+        # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
+        # conhecidas pelo jogador e as demais cartas ainda não jogadas
+        cards_played = self._get_cards_played(current_play_hist)
+        known_cards = cast(list[Card], (list(top_card) + self.cards + cards_played))
+        remaining_cards = _get_remaining_deck(known_cards)
+
+        # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
+        # para os oponentes, além da atual quantidade de cartas na mesa
+        current_round = self._get_current_round(cards_played)
+        number_of_cards_in_round = len(cards_played) % 4
 
         simulations = 200
         best_order_wins = -1
@@ -223,7 +228,15 @@ class ProbabilisticStrategist(Player):
 
         for card_order in all_valid_arrange:
             current_win = sum(
-                self._simulate_monte_carlo(top_card, current_play_hist, card_order)
+                self._simulate_monte_carlo(
+                    top_card,
+                    current_round,
+                    number_of_cards_in_round,
+                    card_order,
+                    remaining_cards,
+                    team_rounds_wins,
+                    opp_rounds_wins,
+                )
                 for _ in range(simulations)
             )
 
@@ -244,6 +257,20 @@ class ProbabilisticStrategist(Player):
         current_play_hist = self._get_current_play_list(play_hist)
         player_decision = current_play_hist[-1] if current_play_hist else []
         status = player_decision[-1] if player_decision else None
+        team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
+            top_card, current_play_hist
+        )
+
+        # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
+        # conhecidas pelo jogador e as demais cartas ainda não jogadas
+        cards_played = self._get_cards_played(current_play_hist)
+        known_cards = cast(list[Card], (list(top_card) + self.cards + cards_played))
+        remaining_cards = _get_remaining_deck(known_cards)
+
+        # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
+        # para os oponentes, além da atual quantidade de cartas na mesa
+        current_round = self._get_current_round(cards_played)
+        number_of_cards_in_round = len(cards_played) % 4
 
         simulations = 200
         best_order_wins = -1
@@ -253,7 +280,15 @@ class ProbabilisticStrategist(Player):
 
         for card_order in all_valid_arrange:
             current_win = sum(
-                self._simulate_monte_carlo(top_card, current_play_hist, card_order)
+                self._simulate_monte_carlo(
+                    top_card,
+                    current_round,
+                    number_of_cards_in_round,
+                    card_order,
+                    remaining_cards,
+                    team_rounds_wins,
+                    opp_rounds_wins,
+                )
                 for _ in range(simulations)
             )
 
