@@ -32,18 +32,23 @@ MAX_SIMULATIONS = 200
 
 
 def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
-    # Retornar todas as cartas não jogadas na rodada atual.
+    """
+    Retorna o restante das cartas do baralho de Truco ainda não jogadas a partir das
+    cartas conhecidas no momento atual do jogo.
+    """
     default_deck = cast(list[Card], generate_deck())
     return list(filter(lambda card: card not in known_cards, default_deck))
 
 
 def _check_truco_requested(current_play_hist: list[PlayerDecision]):
-    # Verifica se um pedido de truco foi registrado na partida. Caso não tenha sido feito o jogador
-    # pode pedir truco, caso contrário não.
-    for player_decision in current_play_hist:
-        if type(player_decision[-1]) is int:
-            return True
-    return False
+    """
+    Verifica se algum pedido de truco foi requisitado em algum momento da partida atual a partir do
+    histórico atual de decisões dos jogadores. Caso tenha sido feito algum pedido retorna True, se
+    não retorna False.
+    """
+    return any(
+        isinstance(player_decision[-1], int) for player_decision in current_play_hist
+    )
 
 
 class ProbabilisticStrategist(Player):
