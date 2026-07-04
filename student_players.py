@@ -94,12 +94,6 @@ class ProbabilisticStrategist(Player):
         # Retorna jogas da partida atual
         return play_hist[-1] if len(play_hist) > 0 else []
 
-    def _is_raise_allowed(self, status: int | None):
-        # Verifica se é válido aumentar o valor do truco
-        if status is None or (type(status) is int and status < 12):
-            return True
-        return False
-
     def _get_current_order_permutation(self) -> list[list[Card]]:
         return [list(order) for order in permutations(self.cards)]
 
@@ -276,10 +270,9 @@ class ProbabilisticStrategist(Player):
 
         probability = best_order_wins / simulations
 
+        # Verifica se é válido aumentar o valor do truco
         is_raise_allowed = (
-            self._is_raise_allowed(status)
-            if type(status) is int or status is None
-            else False
+            True if status is None or (type(status) is int and status < 12) else False
         )
 
         if probability >= 0.9:
