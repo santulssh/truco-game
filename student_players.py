@@ -211,7 +211,7 @@ class ProbabilisticStrategist(Player):
         # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
         # conhecidas pelo jogador e as demais cartas ainda não jogadas
         cards_played = self._get_cards_played(current_play_hist)
-        known_cards = cast(list[Card], (list(top_card) + self.cards + cards_played))
+        known_cards: list[Card] = [top_card] + self.cards + cards_played
         remaining_cards = _get_remaining_deck(known_cards)
 
         # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
@@ -264,7 +264,7 @@ class ProbabilisticStrategist(Player):
         # Buscamos todas as cartas jogadas na partida atual e então salvamos todas as cartas
         # conhecidas pelo jogador e as demais cartas ainda não jogadas
         cards_played = self._get_cards_played(current_play_hist)
-        known_cards = cast(list[Card], (list(top_card) + self.cards + cards_played))
+        known_cards: list[Card] = [top_card] + self.cards + cards_played
         remaining_cards = _get_remaining_deck(known_cards)
 
         # Número atual da rodada para o placar atual de rodadas ganhadas tanto para o time quanto
