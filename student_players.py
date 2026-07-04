@@ -235,7 +235,7 @@ class ProbabilisticStrategist(Player):
         probability = best_order_wins / simulations
 
         # Válidamos se é possível pedir truco se nenhum truco foi feito
-        if probability >= 0.8 and not _check_truco_requested(current_play_hist):
+        if probability >= 0.9 and not _check_truco_requested(current_play_hist):
             return [2, best_order[0]]
         return [1, best_order[0]]
 
