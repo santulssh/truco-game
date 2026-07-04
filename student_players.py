@@ -33,10 +33,13 @@ def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
     return list(filter(lambda card: card not in known_cards, default_deck))
 
 
-class ProbabilisticStrategist(Player):
-    current_hand_score: int = 0
-    count_manilhas_in_hand: int = 0
-    truco_requested = False
+def _check_truco_requested(current_play_hist: list[PlayerDecision]):
+    # Verifica se um pedido de truco foi registrado na partida. Caso não tenha sido feito o jogador
+    # pode pedir truco, caso contrário não.
+    for player_decision in current_play_hist:
+        if type(player_decision[-1]) is int:
+            return True
+    return False
 
     def __init__(self, ra: str, name: str):
         super().__init__(ra, name)
