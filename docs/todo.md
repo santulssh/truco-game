@@ -20,8 +20,9 @@
       cartas de menor valor.
 
 ## Código
-- [ ] [Perf]: Existem diversas funções realizando processos de cálculo redundante que podem ser
+- [x] [Perf]: Existem diversas funções realizando processos de cálculo redundante que podem ser
       otimizadas. Avaliar as funções e reescrever sua lógica ou remover por completo caso seja
       desnecessário para o funcionamento do código.
-- [ ] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
-- [ ] [Perf]: O código precisa ser otimizado.
+- [x] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
+- [ ] [Perf]: Existe algo adicionando cerca de 5+ segundos por rodada. O comportamento não é consistente.
+              Diminuir o número de simulações não altera o resultado, mas deixa pior o cálculo
