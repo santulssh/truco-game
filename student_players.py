@@ -90,28 +90,6 @@ class ProbabilisticStrategist(Player):
         # Retornar todas as cartas jogadas na rodada atual
         return [play[1] for play in current_play_list if play[1] is not None]
 
-    def _calculate_hand_score(
-        self, top_card: Card, custom_cards: list[Card] | None = None
-    ) -> int:
-        # Retorna a pontuação total das cartas
-        cards = self.cards.copy() if custom_cards is None else custom_cards
-        return sum([card_value(card, top_card) for card in cards])
-
-    def _sort_hand_by_score(
-        self, top_card: Card, custom_cards: list[Card] | None = None
-    ) -> list[Card]:
-        # Retorna as cartas em mãos ordenadas a partir do valor das cartas
-        cards = self.cards.copy() if custom_cards is None else custom_cards
-        return sorted(cards, key=lambda card: card_value(card, top_card), reverse=True)
-
-    def _is_manilha(self, card: Card, top_card: Card):
-        # Verifica se uma carta é uma manilha com base no rank da vira
-        return card[0] == manilha_rank(top_card[0])
-
-    def _count_manilhas_hand(self, top_card: Card):
-        # Calcula a quantidade de manilhas em mãos
-        return sum(1 for card in self.cards if self._is_manilha(card, top_card))
-
     def _get_current_play_list(self, play_hist: GameHist):
         # Retorna jogas da partida atual
         return play_hist[-1] if len(play_hist) > 0 else []
@@ -121,12 +99,6 @@ class ProbabilisticStrategist(Player):
         if status is None or (type(status) is int and status < 12):
             return True
         return False
-
-    def _get_current_team_score(self, score_hist: GameScore) -> int:
-        # Retorna a atual pontuação do time na partida
-        # TODO: Avaliar se a posição do score permanece sempre a mesma
-        current_score = score_hist[-1][0] if score_hist else []
-        return current_score[1] if len(current_score) > 0 else 0
 
     def _get_current_order_permutation(self) -> list[list[Card]]:
         return [list(order) for order in permutations(self.cards)]
