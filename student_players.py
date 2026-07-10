@@ -161,7 +161,7 @@ class ProbabilisticStrategist(Player):
 
         return current_round_plays
 
-    def _simulate_monte_carlo(
+    def _simulate_round(
         self,
         top_card: Card,
         current_round: int,
@@ -248,38 +248,32 @@ class ProbabilisticStrategist(Player):
 
         return 1 if team_rounds_sim >= 2 else 0
 
-    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
-        # Estado da partida atual considerando as decisões dos jogadores.
-        current_play_hist = self._get_current_play_hist(play_hist)
-        cards_played = self._get_cards_played(current_play_hist)
-        current_round = self._get_current_round(cards_played)
-        number_of_cards_in_round = len(cards_played) % 4
-        team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
-            top_card, current_play_hist
-        )
-        current_round_plays = self._get_current_round_card_played(
-            current_play_hist,
-            cards_played,
-            number_of_cards_in_round,
-        )
-
-        # Armazenamos as cartas conhecidas do jogo e filtramos as cartas restantes possíveis ainda
-        # não jogadas na partida atual.
-        known_cards: list[Card] = [top_card] + self.cards + cards_played
-        remaining_cards = _get_remaining_deck(known_cards)
-
+    def _get_best_order(
+        self,
+        top_card: Card,
+        current_round: int,
+        number_of_cards_in_round: int,
+        team_rounds_wins: int,
+        opp_rounds_wins: int,
+        current_round_plays: dict[int, Card],
+        remaining_cards: list[Card],
+    ):
+        """
+        Retorna a probabilidade de vencer a partir da mão atual e a melhor ordem estística de
+        vencer a partir da simulação da rodada considerando a ordem de jogada das cartas em mão
+        e as informações da partida conhecidas pelo bot.
+        """
+        # A partir do estado da partida atual vamos simular possíveis partidas
         all_valid_arrange = self._get_current_order_permutation(
             top_card, team_rounds_wins, opp_rounds_wins
         )
-
-        # A partir do estado da partida atual vamos simular possíveis partidas
         best_order_wins = -1
         best_order: list[Card] = []
         for card_order in all_valid_arrange:
             current_win = 0
 
             for sim in range(MAX_SIMULATIONS):
-                current_win += self._simulate_monte_carlo(
+                current_win += self._simulate_round(
                     top_card,
                     current_round,
                     number_of_cards_in_round,
@@ -298,13 +292,43 @@ class ProbabilisticStrategist(Player):
                 ):
                     break
 
-            # Guarda a melhor ordem
             if current_win > best_order_wins:
                 best_order_wins = current_win
                 best_order = card_order.copy()
 
         probability = best_order_wins / MAX_SIMULATIONS
-        # Válidamos se é possível pedir truco se nenhum truco foi feito
+        return probability, best_order
+
+    def play(self, top_card: Card, play_hist: GameHist, score_hist: GameScore):
+        # Estado da partida atual considerando as decisões dos jogadores.
+        current_play_hist = self._get_current_play_hist(play_hist)
+        cards_played = self._get_cards_played(current_play_hist)
+        current_round = self._get_current_round(cards_played)
+        number_of_cards_in_round = len(cards_played) % 4
+        team_rounds_wins, opp_rounds_wins = self._get_rounds_won(
+            top_card, current_play_hist
+        )
+        current_round_plays = self._get_current_round_card_played(
+            current_play_hist,
+            cards_played,
+            number_of_cards_in_round,
+        )
+
+        # Armazenamos as cartas conhecidas do jogo e filtramos as cartas restantes possíveis ainda
+        # ainda não jogadas na partida atual.
+        known_cards: list[Card] = [top_card] + self.cards + cards_played
+        remaining_cards = _get_remaining_deck(known_cards)
+
+        probability, best_order = self._get_best_order(
+            top_card,
+            current_round,
+            number_of_cards_in_round,
+            team_rounds_wins,
+            opp_rounds_wins,
+            current_round_plays,
+            remaining_cards,
+        )
+
         if probability >= 0.9 and not _check_truco_requested(current_play_hist):
             return [2, best_order[0]]
         return [1, best_order[0]]
@@ -324,52 +348,25 @@ class ProbabilisticStrategist(Player):
             number_of_cards_in_round,
         )
 
-        # Armazenamos as cartas conhecidas do jogo e filtramos as cartas restantes possíveis ainda
-        # não jogadas na partida atual.
+        # Armazenamos as cartas conhecidas do jogo e filtramos as cartas restantes possíveis
+        # ainda não jogadas na partida atual.
         known_cards: list[Card] = [top_card] + self.cards + cards_played
         remaining_cards = _get_remaining_deck(known_cards)
 
-        all_valid_arrange = self._get_current_order_permutation(
-            top_card, team_rounds_wins, opp_rounds_wins
+        probability, _ = self._get_best_order(
+            top_card,
+            current_round,
+            number_of_cards_in_round,
+            team_rounds_wins,
+            opp_rounds_wins,
+            current_round_plays,
+            remaining_cards,
         )
-
-        # A partir do estado da partida atual vamos simular possíveis partidas
-        best_order_wins = -1
-        for card_order in all_valid_arrange:
-            current_win = 0
-
-            for sim in range(MAX_SIMULATIONS):
-                current_win += self._simulate_monte_carlo(
-                    top_card,
-                    current_round,
-                    number_of_cards_in_round,
-                    team_rounds_wins,
-                    opp_rounds_wins,
-                    card_order,
-                    current_round_plays,
-                    remaining_cards,
-                )
-
-                current_probability = current_win / (sim + 1)
-                if (
-                    best_order_wins > 0
-                    and (current_probability + CONFIDENCE_THRESHOLD) * MAX_SIMULATIONS
-                    < best_order_wins
-                ):
-                    break
-
-            # Guarda a melhor ordem
-            if current_win > best_order_wins:
-                best_order_wins = current_win
-
-        probability = best_order_wins / MAX_SIMULATIONS
 
         if probability >= 0.95:
             return 2 if _is_raise_allowed(current_play_hist) else 1
-
         if probability >= 0.85:
             return 1
-
         return 0
 
 
