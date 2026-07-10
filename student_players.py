@@ -84,21 +84,18 @@ class ProbabilisticStrategist(Player):
         completed_rounds = len(players_decision) // 4
 
         for i in range(completed_rounds):
-            # Selecionamos as decisões dos jogadores de cada dupla
-            players_decision = players_decision[i * 4 : (i + 1) * 4]
+            # Selecionamos as decisões dos jogadores de cada dupla.
+            round_decisions = players_decision[i * 4 : (i + 1) * 4]
 
-            if not players_decision:
+            if not round_decisions:
                 break
 
-            # Pegamos o jogador com o maior lance na rodada em valor de carta
-            player_decision = max(
-                players_decision, key=lambda play: card_value(play[1], top_card)
+            # Pegamos o jogador com o maior lance na rodada em valor de carta.
+            winner_player = max(
+                round_decisions, key=lambda play: card_value(play[1], top_card)
             )
-            winner_player = player_decision
-
-            # Validamos a posição do jogador ganhador com o atual jogador jogando.
-            # Se o vencer for um dos jogadores da dupla, aumentamos o placar de rodadas vencidas
-            # Caso contrário aumentamos o do oponente
+            # Verificamos se a posição do jogador ganhador corresponde a algum jogador do time
+            # para a distribuição das partidas ganhas.
             if winner_player[0] % 2 == self.position % 2:
                 team_rounds_wins += 1
             else:
