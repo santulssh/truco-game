@@ -24,5 +24,6 @@
 - [x] [Perf]: Existem diversas funções realizando processos de cálculo redundante que podem ser
       otimizadas. Avaliar as funções e reescrever sua lógica ou remover por completo caso seja
       desnecessário para o funcionamento do código.
-- [ ] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
-- [ ] [Perf]: O código precisa ser otimizado.
+- [x] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
+- [x] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
+- [x] [Perf]: O código precisa ser otimizado.

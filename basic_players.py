@@ -134,7 +134,7 @@ class ReverseGreedyPlayer(Player):
                     round1_plays.append(plays)
             t0_max = 0
             t1_max = 0
-            
+            round1_plays = round1_plays[:4]
             for p_idx, card, _ in round1_plays:
                 val = card_value(card, top_card)
                 if p_idx in (0, 2):
