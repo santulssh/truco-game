@@ -372,10 +372,10 @@ class ProbabilisticStrategist(Player):
             True if status is None or (type(status) is int and status < 12) else False
         )
 
-        if probability >= 0.9:
+        if probability >= 0.95:
             return 2 if is_raise_allowed else 1
 
-        if probability >= 0.7:
+        if probability >= 0.85:
             return 1
 
         return 0
