@@ -172,16 +172,21 @@ class ProbabilisticStrategist(Player):
         current_round_plays: dict[int, Card],
         remaining_cards: list[Card],
     ):
+        """
+        A partir das informações conhecidas simula uma partida teórica onde cada jogador possui
+        suas próprias cartas em mão e jogam de forma aleátoria a fim de verificar a probabilidade
+        de vencer essa partida caso fosse uma partida real.
+        """
 
-        # Quantidade de cartas desconhecidas na atual partida a serem distribuídas
+        players_played_this_round = set(current_round_plays.keys())
+        team_rounds_sim, opp_rounds_sim = team_rounds_wins, opp_rounds_wins
+
+        # Quantidade de cartas desconhecidas na atual partida a serem distribuídas.
         cards_per_player = 4 - current_round
         k_card_simulate = 3 * cards_per_player
-
-        # Quem já jogou na rodada atual
-        players_played_this_round = set(current_round_plays.keys())
-
         pick_random_order = random.sample(remaining_cards, k_card_simulate)
 
+        # Distribuição do restante de cartas para cada jogador.
         index = 0
         players_cards: dict[int, deque[Card]] = {}
         for position in range(4):
@@ -194,9 +199,8 @@ class ProbabilisticStrategist(Player):
             )
             index += cards_per_player
 
-        team_rounds_sim, opp_rounds_sim = team_rounds_wins, opp_rounds_wins
-
-        # Se estamos no meio da rodada atual, completá-la primeiro
+        # Caso a rodada não tenha sido terminada na simulação, realiza as jogadas teóricas dos
+        # jogadores até completá-la primeiro.
         if number_of_cards_in_round > 0:
             # Remove cartas já jogadas na rodada atual das mãos
             for pos, card in current_round_plays.items():
@@ -206,7 +210,8 @@ class ProbabilisticStrategist(Player):
                             del players_cards[pos][i]
                             break
 
-            # Jogadores que ainda não jogaram na rodada atual jogam agora
+            # Considerar os demais jogadores que ainda não jogaram na rodada atual a jogarem suas
+            # escolha de cartas na rodada atual.
             round_plays = []
             for pos in sorted(players_cards.keys()):
                 if pos in players_played_this_round:
@@ -228,7 +233,9 @@ class ProbabilisticStrategist(Player):
                 else:
                     opp_rounds_sim += 1
 
-        # Rodadas completas subsequentes
+        # Verificar os vencedores das rodadas completas subsequentes, determinando o vencedor
+        # pelo valor da carta em cada rodada. O vencedor é decidido se pontuar a melhor carta em
+        # pelo menos duas rodadas ou a melhor carta na rodada seguinte considerando empate.
         while team_rounds_sim <= 2 and opp_rounds_sim <= 2:
             round_plays = []
             for pos in sorted(players_cards.keys()):
@@ -263,7 +270,6 @@ class ProbabilisticStrategist(Player):
         vencer a partir da simulação da rodada considerando a ordem de jogada das cartas em mão
         e as informações da partida conhecidas pelo bot.
         """
-        # A partir do estado da partida atual vamos simular possíveis partidas
         all_valid_arrange = self._get_current_order_permutation(
             top_card, team_rounds_wins, opp_rounds_wins
         )
