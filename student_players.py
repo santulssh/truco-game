@@ -10,7 +10,7 @@ from itertools import permutations
 from typing import NewType, cast
 
 from basic_players import Player
-from judge import card_value, generate_deck, manilha_rank
+from judge import card_value, generate_deck
 
 # Descreve o tipo de carta
 # 0: Rank da carta; 1: Suit da carta
