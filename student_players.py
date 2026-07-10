@@ -29,14 +29,14 @@ PlayerDecision = NewType("PlayerDecision", list)
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
 # Variáveis para a simulação
-MAX_SIMULATIONS = 200
-CONFIDENCE_THRESHOLD = 0.05
+MAX_SIMULATIONS = 200  # Valor Padrão: 200
+CONFIDENCE_THRESHOLD = 0.05  # Valor Padrão: 0.03 | Intervalo: (mais confiante) [0.01 - 0.1] (menos confiante)
 
 
 def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
     """
-    Retorna o restante das cartas do baralho de Truco ainda não jogadas a partir das
-    cartas conhecidas no momento atual do jogo.
+    Retorna o restante das cartas do baralho de Truco ainda não jogadas a partir das cartas
+    conhecidas no momento atual do jogo.
     """
     default_deck = cast(list[Card], generate_deck())
     return list(filter(lambda card: card not in known_cards, default_deck))
@@ -57,15 +57,26 @@ class ProbabilisticStrategist(Player):
     def __init__(self, ra: str, name: str):
         super().__init__(ra, name)
 
+    def _get_partner_pos(self):
+        """Retorna a posição do parceiro com base na posição do jogador atual"""
+        return (self.position + 2) % 4
+
     def _get_current_round(self, cards_played: list[Card]):
-        # Retorna o número da rodada atual
+        """
+        Retorna a rodada atual a partir das cartas jogadas onde o máximo de cartas por rodada
+        equivale a quatro.
+        """
+        # Retorna o número da rodada atual.
         return len(cards_played) // 4 + 1 if cards_played else 1
 
     def _get_rounds_won(self, top_card: Card, current_play_hist: list[PlayerDecision]):
-        # Calcula a quantidade de rodadas ganhas pelo time e pelos oponentes
+        """
+        Retorna a quantidade de rodadas ganhas pelo time e pelos oponentes a partir do histórico
+        de decisões dos jogadores na partida atual.
+        """
         team_rounds_wins, opp_rounds_wins = 0, 0
-
-        # Recuperamos as decisões dos jogadores na rodada deconsiderando truco
+        # Filtramos as decisões dos jogadores na partida atual desconsiderando quando jogadores
+        # pedem o truco ou aumentam, pois não são jogadas cartas.
         players_decision = list(
             filter(lambda play: type(play[-1]) is not int, current_play_hist)
         )
