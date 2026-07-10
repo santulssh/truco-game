@@ -18,6 +18,9 @@
       e manter as cartas mais fortes para uma outra rodada.
 - [x] [Feature]: Caso não seja possível ganhar a rodada com as cartas que possui, decidir jogar as
       cartas de menor valor.
+      devemos verificar se é melhor empatar gastando uma manilha ou se é melhor perder aquela rodada e manter as cartas mais fortes para uma outra rodada.
+- [x] [Feature]: Caso não seja possível ganhar a rodada com as cartas que possui, decidir jogar as cartas de menor valor.
+- [x] [Feature]: Considerar empates na simulação. Definimos errôneamente quem começa a rodada nesse caso e quantos pontos precisamos fazer.
 
 ## Código
 - [x] [Perf]: Existem diversas funções realizando processos de cálculo redundante que podem ser
@@ -26,3 +29,5 @@
 - [x] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
 - [x] [Perf]: Existe algo adicionando cerca de 5+ segundos por rodada. O comportamento não é consistente.
               Diminuir o número de simulações não altera o resultado, mas deixa pior o cálculo
+- [x] [Change]: Implementar a tipagem correta para evitar cenários imprevistos.
+- [x] [Perf]: O código precisa ser otimizado.
