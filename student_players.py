@@ -18,9 +18,9 @@ GameScore = NewType("GameScore", list[list[RoundScore]])
 PlayerDecision = NewType("PlayerDecision", list)
 GameHist = NewType("GameHist", list[list[PlayerDecision]])
 
-# Variáveis globais para a simulação
+# Variáveis globais para a simulação.
 MAX_SIMULATIONS = 200  # Valor Padrão: 200
-CONFIDENCE_THRESHOLD = 0.05  # Valor Padrão: 0.05 [0.01 - 0.1]
+CONFIDENCE_THRESHOLD = 0.05  # Valor Padrão: 0.05 (confiante) [0.01 - 0.1] (duvidoso)
 
 
 def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
@@ -35,7 +35,7 @@ def _get_remaining_deck(known_cards: list[Card]) -> list[Card]:
 def _check_truco_requested(current_play_hist: list[PlayerDecision]):
     """
     Verifica se algum pedido de truco foi requisitado em algum momento da rodada atual a partir do
-    histórico da partida atual
+    histórico da partida atual.
     """
     return any(
         isinstance(player_decision[-1], int) for player_decision in current_play_hist
@@ -44,7 +44,7 @@ def _check_truco_requested(current_play_hist: list[PlayerDecision]):
 
 def _is_raise_allowed(current_play_hist: list[PlayerDecision]):
     """
-    Verifica se é valido aumentar o valor do truco a partir do histórico da partida atual
+    Verifica se é valido aumentar o valor do truco a partir do histórico da partida atual.
     """
     player_decision = current_play_hist[-1] if current_play_hist else []
     status = player_decision[-1] if player_decision else None
@@ -52,6 +52,13 @@ def _is_raise_allowed(current_play_hist: list[PlayerDecision]):
 
 
 class ProbabilisticStrategist(Player):
+    """
+    ProbabilisticStrategist decide suas jogadas totalmente baseado na probabilidade de seus cálculos
+    e cenários hipotéticos. A ordem de suas cartas é decidida através das informações do jogo e de
+    seu parceiro. Se possuir a certeza de que irá ganhar, continuará aumentando o valor do truco até
+    que seus adversários corram com medo de seus cálculos.
+    """
+
     def __init__(self, ra: str, name: str):
         super().__init__(ra, name)
 
@@ -60,7 +67,6 @@ class ProbabilisticStrategist(Player):
         Retorna o número da rodada atual a partir das cartas jogadas onde o máximo de cartas por
         rodada equivale a quatro.
         """
-        # Retorna o número da rodada atual.
         return len(cards_played) // 4 + 1 if cards_played else 1
 
     def _get_rounds_won(self, top_card: Card, current_play_hist: list[PlayerDecision]):
@@ -69,7 +75,6 @@ class ProbabilisticStrategist(Player):
         de decisões dos jogadores na partida atual.
         """
         team_rounds_wins, opp_rounds_wins = 0, 0
-        # Filtramos as decisões normais dos jogadores na partida atual
         players_decision = self._get_current_normal_play_hist(current_play_hist)
         completed_rounds = len(players_decision) // 4
 
@@ -82,7 +87,7 @@ class ProbabilisticStrategist(Player):
 
             # A partir das decisões na rodada decidimos o vencedor pelo maior valor de carta
             # jogada e então verificamos se o jogador ganhador corresponde a algum dos jogadores
-            # da dupla
+            # da dupla pela posição na mesa.
             winner_player = max(
                 round_decisions,
                 key=lambda player_decision: card_value(player_decision[1], top_card),
@@ -116,7 +121,7 @@ class ProbabilisticStrategist(Player):
         """
         Retorna todas as posibilidades de organização da mão atual considerando se o time
         está perdendo ou ganhando. Caso o time esteja ganhando ordena considerando o menor
-        valor de carta, caso contrário, considera o maior valor da carta
+        valor de carta, caso contrário, considera o maior valor da carta.
         """
         valid_order = [list(order) for order in permutations(self.cards)]
 
@@ -141,7 +146,7 @@ class ProbabilisticStrategist(Player):
         """
         current_round_plays: dict[int, Card] = {}
 
-        # Separa cartas da rodada atual das anteriores
+        # Separa cartas da rodada atual das anteriores.
         completed_rounds_cards = cards_played[
             : len(cards_played) - number_of_cards_in_round
         ]
@@ -151,8 +156,8 @@ class ProbabilisticStrategist(Player):
             else []
         )
 
-        # Precisamos saber quem jogou o quê na rodada atual. Filtramos as decisões da rodada
-        # considerando as jogas normais
+        # Filtramos as decisões na rodada atual considerando somente as jogadas normais dos
+        # jogadores para armazenarmos as cartas lançadas por cada um deles.
         if current_round_cards:
             normal_plays = self._get_current_normal_play_hist(current_play_hist)
             round_starts = len(completed_rounds_cards)
@@ -181,14 +186,14 @@ class ProbabilisticStrategist(Player):
         players_played_this_round = set(current_round_plays.keys())
         team_rounds_sim, opp_rounds_sim = team_rounds_wins, opp_rounds_wins
 
-        # Quantidade de cartas desconhecidas na atual partida a serem distribuídas.
+        # Determinamos a quantidade de cartas a serem distribuidas para cada jogador a partidar do
+        # número de cartas desconhecidas na rodada atual e distribuimos para completar a mão.
+        players_cards: dict[int, deque[Card]] = {}
         cards_per_player = 4 - current_round
         k_card_simulate = 3 * cards_per_player
         pick_random_order = random.sample(remaining_cards, k_card_simulate)
 
-        # Distribuição do restante de cartas para cada jogador.
         index = 0
-        players_cards: dict[int, deque[Card]] = {}
         for position in range(4):
             if position == self.position:
                 players_cards[position] = deque(card_order.copy())
@@ -235,7 +240,8 @@ class ProbabilisticStrategist(Player):
 
         # Verificar os vencedores das rodadas completas subsequentes, determinando o vencedor
         # pelo valor da carta em cada rodada. O vencedor é decidido se pontuar a melhor carta em
-        # pelo menos duas rodadas ou a melhor carta na rodada seguinte considerando empate.
+        # pelo menos duas rodadas ou a melhor carta na rodada seguinte considerando empate na
+        # anterior ou a melhor carta na partida anterior se um empate acontecer na próxima.
         while team_rounds_sim <= 2 and opp_rounds_sim <= 2:
             round_plays = []
             for pos in sorted(players_cards.keys()):
@@ -266,15 +272,16 @@ class ProbabilisticStrategist(Player):
         remaining_cards: list[Card],
     ):
         """
-        Retorna a probabilidade de vencer a partir da mão atual e a melhor ordem estística de
-        vencer a partir da simulação da rodada considerando a ordem de jogada das cartas em mão
-        e as informações da partida conhecidas pelo bot.
+        Retorna a probabilidade de vencer com as cartas na mão e a melhor ordem estatística de
+        vencer a partida considerando a simulação com as informações conhecidas no decorrer da
+        da partida.
         """
+        best_order_wins = -1
+        best_order: list[Card] = []
         all_valid_arrange = self._get_current_order_permutation(
             top_card, team_rounds_wins, opp_rounds_wins
         )
-        best_order_wins = -1
-        best_order: list[Card] = []
+
         for card_order in all_valid_arrange:
             current_win = 0
 
@@ -290,6 +297,8 @@ class ProbabilisticStrategist(Player):
                     remaining_cards,
                 )
 
+                # Caso esteja confiante com essa ordem de cartas a serem jogadas encerra a
+                # simulação prematuramente.
                 current_probability = current_win / (sim + 1)
                 if (
                     best_order_wins > 0
@@ -298,6 +307,7 @@ class ProbabilisticStrategist(Player):
                 ):
                     break
 
+            # Verifica se a ordem de jogadas de cartas atual é melhor que a anterior.
             if current_win > best_order_wins:
                 best_order_wins = current_win
                 best_order = card_order.copy()
