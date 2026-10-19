@@ -1,275 +1,129 @@
-# OBSERVAÇÃO
+# Truco — Simulador de Torneio
 
-Para iniciar o projeto, você deve primeiro instalar o `uv`. Após instalar o `uv`, você deve seguir os passos a seguir:
+Projeto desenvolvido para a disciplina **MC102 — Algoritmos e Programação de Computadores**, da UNICAMP. O objetivo é simular torneios de Truco entre duplas de jogadores controlados por diferentes estratégias, permitindo acompanhar partidas, pontuações e histórico de jogadas. O projeto foi desenvolvido como parte das atividades da disciplina MC102, com foco na aplicação prática dos fundamentos de programação.
 
-Acesse a pasta do projeto e depois abra o terminal na pasta do projeto, certifique-se de que está no caminho certo no terminal.
+## Sobre o Projeto
 
-Agora, vamos criar um ambiente virtual para a instalação dos pacotes necessários para rodar o projeto. No terminal: `uv venv --python 3.11`, após isso, ative o ambiente virtual no seu IDE ou terminal para rodar os pacotes e a versão do Python configurada. (Acesse: [link](https://docs.astral.sh/uv/pip/environments/#__tabbed_1_2)). Por fim, sincronizar os arquivos necessários do `uv.lock` com o ambiente virtual. No terminal: `uv sync --active`. 
+O projeto implementa um simulador de torneios de Truco com sistema de competição *todos contra todos*, no qual cada dupla enfrenta as demais. Os jogadores utilizam estratégias distintas para tomar decisões durante as partidas, tornando possível comparar seu comportamento e desempenho. O simulador conta com uma interface gráfica para acompanhar as jogadas, um sistema de pontuação e o registro das ações realizadas durante as partidas.
 
-Após todas essas etapas, caso não tenha havido nenhum problema, tente executar no terminal `uv run --active main.py -s 0 -n 1`. Caso apareça algum erro, verifique as etapas anteriores. Qualquer dúvida, chame no privado.
+### Principais Funcionalidades
 
-# Truco - Simulador de Torneio
+- **Simulação de torneios:** partidas entre diferentes duplas em um sistema *todos contra todos*.
+- **Estratégias de jogadores:** implementação de diferentes comportamentos e formas de tomar decisões.
+- **Sistema de pontuação:** acompanhamento dos pontos, das mãos vencidas e dos resultados das partidas.
+- **Interface gráfica:** visualização das partidas e das jogadas utilizando Pygame.
+- **Histórico de jogadas:** registro das ações realizadas durante as partidas.
+- **Execução configurável:** opções para definir o número de jogos e a velocidade da simulação, incluindo um modo sem interface gráfica.
 
-**Projeto 2 do curso MC102 - Programação de Computadores**
+## Como Funciona
 
-Um simulador completo de torneio de Truco (jogo de cartas brasileiro) com interface gráfica e vários tipos de jogadores com estratégias diferentes.
+O simulador organiza a competição em diferentes etapas:
 
-## 📋 O que é o Projeto?
+1. **Mão:** cada jogador recebe três cartas e disputa até três rodadas.
+2. **Jogo:** sequência de mãos até que uma das duplas alcance 12 pontos.
+3. **Confronto:** conjunto de jogos disputados entre duas duplas.
+4. **Torneio:** competição em que todas as duplas se enfrentam.
 
-Este projeto implementa um **simulador de torneio de Truco** onde duplas de jogadores de IA competem em um sistema "todos contra todos". O projeto inclui:
+### Regras do Truco
 
-- **Diferentes estratégias de jogadores**: desde jogadores aleatórios até jogadores com estratégias sofisticadas
-- **Sistema de pontuação**: rastreamento de vitórias em jogos individuais e confrontos completos
-- **Interface gráfica**: visualização animada das partidas usando Pygame
-- **Histórico de jogadas**: registro completo de cada ação durante o jogo
+O simulador utiliza regras de Truco para definir a força das cartas, as apostas e os resultados das mãos.
 
-## 🎮 Como Funciona?
+- **Vira e manilhas:** uma carta é revelada após a distribuição, e a carta seguinte na sequência define as manilhas, que possuem a maior força na rodada.
+- **Pedido de truco:** os jogadores podem aumentar o valor da mão, seguindo a sequência de apostas prevista pelas regras implementadas.
+- **Respostas às apostas:** a dupla adversária pode aceitar, desistir ou aumentar a aposta.
+- **Cartas encobertas:** os jogadores podem utilizar cartas viradas para baixo como parte de suas decisões estratégicas.
+- **Vitória da mão:** vence a mão a dupla que ganhar duas das três rodadas, respeitando as regras específicas do jogo.
 
-### Estrutura do Jogo
+### Estratégias dos Jogadores
 
-1. **Mão (Round)**: Uma rodada individual com 3 cartas para cada jogador
-2. **Jogo**: Série de mãos até que uma dupla atinja 12 pontos
-3. **Confronto (Match)**: Série de jogos entre duas duplas
-4. **Torneio**: Sistema "todos contra todos" onde todas as duplas competem entre si
+O projeto inclui diferentes implementações de jogadores, cada uma com uma abordagem própria:
 
-#### Dinâmica do Truco
+- **`DummyPlayer`:** escolhe suas jogadas de forma aleatória, servindo como estratégia básica de comparação.
+- **`GreedyPlayer`:** prioriza as cartas mais fortes e pode pedir truco quando possui manilhas.
+- **`ReverseGreedyPlayer`:** busca guardar cartas fortes para as etapas finais da mão.
 
-* **Vira e Manilhas**: Após distribuir as cartas, uma carta é virada na mesa (*vira*). As cartas imediatamente acima dela na sequência se tornam as **manilhas**, as cartas mais fortes da rodada.
-  Exemplo: se o vira for **7**, os **Q** viram manilhas.
+A implementação do jogador da dupla segue a seguinte abordagem:
+- **`ProbabilisticStrategist`:** utiliza um algoritmo de decisão baseado em cálculos probabilísticos e análise de cenários possíveis. Avalia a força das cartas e as combinações possíveis de mãos da própria dupla e dos adversários, considerando as cartas em sua mão, as jogadas realizadas e as informações fornecidas pelo parceiro. Com base nessas estimativas, define a ordem de suas jogadas e decide quando aumentar o valor do truco, buscando explorar situações favoráveis e levar os adversários a desistir da mão.
 
-* **Pedido de Truco**: Durante a mão, uma dupla pode pedir **truco** para aumentar o valor da rodada. A pontuação pode evoluir de **1 → 3 → 6 → 9 → 12 pontos**, conforme os aumentos aceitos.
+## Tecnologias Utilizadas
 
-* **Respostas ao Truco**: Ao receber um pedido, a dupla adversária pode:
+- **Python 3.11:** implementação da lógica do jogo, das estratégias dos jogadores e da simulação do torneio.
+- **Pygame:** criação da interface gráfica para acompanhar as partidas.
+- **uv:** gerenciamento do ambiente virtual e das dependências do projeto.
 
-  * **Correr** → desistir da mão e ceder os pontos atuais;
-  * **Aceitar** → continuar jogando com a nova pontuação;
-  * **Aumentar** → pedir um novo aumento de aposta (*seis*, *nove* ou *doze*).
-
-* **Cartas Encobertas**: Um jogador pode jogar uma carta virada para baixo (*encoberta*). Essa carta normalmente não disputa a rodada, mas pode ser usada como estratégia para esconder informação ou confundir os adversários.
-
-* **Vitória da Mão**: A dupla que vencer **duas das três rodadas** ganha a mão e soma os pontos apostados.
-
----
-#### Exemplo de uma Mão de Truco 
-
-![exemplo](exemplo-truco.png)
-
-#### Situação Inicial
-
-O *vira* é **3♣**.
-Pela regra mostrada na imagem, as **manilhas** são os **4**.
-
-Ordem das manilhas (da maior para a menor):
-
-1. **4♦**
-2. **4♠**
-3. **4♥**
-4. **4♣**
-
-#### Jogadores
-
-* **Dupla 1**: Lucas e Marina
-* **Dupla 2**: Pedro e Sofia
-
----
-
-#### Primeira Rodada
-
-**Cartas jogadas**
-
-* Lucas joga **Q♠**
-* Pedro joga **K♦**
-* Marina joga **2♣**
-* Sofia joga **7♥**
-
-✅ **Marina vence** com o **2♣**, já que o 2 é mais forte que K, Q e 7 na ordem do truco.
-
----
-
-#### Segunda Rodada
-
-Pedro olha para Sofia e grita:
-
-> **“TRUCO!”**
-
-A mão agora vale **3 pontos**.
-
-Lucas responde:
-
-> **“ACEITO!”**
-
-**Cartas jogadas**
-
-* Pedro joga **4♥** *(manilha)*
-* Lucas joga **3♦**
-* Sofia joga carta **encoberta** 🂠
-* Marina joga **A♠**
-
-✅ **Pedro vence** com a manilha **4♥**.
-
-Agora está **1 rodada para cada dupla**.
-
----
-
-#### Terceira Rodada
-
-Antes de jogar, Marina aumenta:
-
-> **“SEIS!”**
-
-Agora a mão vale **6 pontos**.
-
-Sofia responde:
-
-> **“ACEITO!”**
-
-**Cartas jogadas**
-
-* Lucas joga **3♠**
-* Pedro joga **2♦**
-* Marina joga **4♠** *(manilha)*
-* Sofia joga **A♦**
-
-✅ **Marina vence** com a manilha **4♠**.
-
-#### Resultado Final
-
-🏆 **Lucas e Marina vencem a mão**
-⭐ **Pontos ganhos: 6**
-
----
-
-### Tipos de Jogadores
-
-1. **DummyPlayer**: Joga aleatoriamente, estratégia básica
-2. **GreedyPlayer**: Joga sempre a melhor carta, pede truco com manilhas
-3. **ReverseGreedyPlayer**: Guarda boas cartas para o final
-4. **Dupla do Estudante**: Seus próprios jogadores (implementados em `student_players.py`)
-
-
-## 🚀 Como Executar
+## Como Executar
 
 ### Requisitos
-- Python3 3.7+
-- Pygame (para interface gráfica)
 
-### Instalação de Dependências
+- Python 3.11
+- [uv](https://docs.astral.sh/uv/), para gerenciar o ambiente e as dependências do projeto.
+
+### 1. Criar o ambiente virtual
+
+Abra o terminal na pasta raiz do projeto e execute:
 
 ```bash
-# Criar um ambiente virtual
-python3 -m venv venv
-source venv/bin/activate
-
-# Instalar dependências
-pip install pygame
+uv venv --python 3.11
 ```
 
-### Executar o Torneio
+Esse comando cria um ambiente virtual utilizando a versão especificada do Python.
 
-**Modo gráfico (padrão):**
+### 2. Instalar as dependências
+
+Sincronize as dependências definidas no arquivo `uv.lock` com o ambiente virtual:
+
 ```bash
-python3 main.py
+uv sync
 ```
 
-**Com número de jogos customizado:**
+O `uv` instalará as dependências declaradas no projeto. Para executar os comandos dentro do ambiente gerenciado, não é necessário ativá-lo manualmente.
+
+Caso prefira utilizar um ambiente virtual já ativado, consulte a [documentação do uv](https://docs.astral.sh/uv/pip/environments/).
+
+### 3. Executar o simulador
+
+Após a instalação das dependências, execute o projeto a partir da pasta raiz.
+
+**Modo gráfico:**
+
 ```bash
-python3 main.py --num-matches 500
+uv run main.py
 ```
 
-**Com velocidade customizada:**
+**Definir o número de jogos:**
+
 ```bash
-python3 main.py --speed 2  # 2x mais rápido
+uv run main.py -n 500
 ```
 
-**Modo terminal (sem gráficos):**
+**Alterar a velocidade da simulação:**
+
 ```bash
-python3 main.py --speed 0
+uv run main.py -s 2
 ```
 
-**Combinações de argumentos:**
+**Executar sem interface gráfica:**
+
 ```bash
-python3 main.py -n 100 -s 0.5  # 100 jogos, 50% velocidade
+uv run main.py -s 0
+```
+
+**Combinar argumentos:**
+
+```bash
+uv run main.py -n 100 -s 0.5
 ```
 
 ### Argumentos da Linha de Comando
 
-- `-n, --num-matches`: Número de mãos em uma partida entre duas duplas (padrão: 1000)
-- `-s, --speed`: Velocidade de exibição das jogadas (padrão: 1)
-  - `0`: Modo terminal (sem visualização gráfica)
-  - `1`: Velocidade normal
-  - `> 1`: Mais rápido
-  - `< 1`: Mais lento
+| Argumento | Descrição | Valor padrão |
+|---|---|---|
+| `-n`, `--num-matches` | Define o número de mãos ou jogos processados pelo simulador, conforme a implementação do programa. | `1000` |
+| `-s`, `--speed` | Define a velocidade de exibição das jogadas. | `1` |
 
-## 🎯 Sua Tarefa
+Os valores de velocidade seguem esta lógica:
 
-Implemente a sua dupla dentro do arquivo `student_players.py`.
-
-Requisitos mínimos:
-
- - Crie uma classe que estenda `Player` e implemente ao menos os métodos `play(self, top_card, play_hist, score_hist)` e `respond(self, top_card, play_hist, score_hist)`.
-- Forneça as funções `pair_name()` e `create_pair()` que retornem o nome da dupla e uma tupla com duas instâncias dos seus jogadores, respectivamente.
-- Não modifique as assinaturas públicas exigidas pelo simulador.
-
-Modelo mínimo (exemplo):
-
-```python
-from basic_players import Player
-
-class NonePlayer(Player):
-  def __init__(self):
-    super().__init__(0, "Ninguém")
-
-  def play(self, top_card, play_hist, score_hist):
-    """Retorna uma tupla (decisão, carta):
-    decisão: 0 = encoberta, 1 = normal, 2 = pedir truco
-    carta: a carta a ser jogada (ou None)
-    Parâmetros:
-    - `top_card` / `vira`: a carta virada na mesa
-    - `play_hist`: histórico de jogadas (lista de mãos, cada mão é lista de jogadas)
-    - `score_hist`: histórico de placares correspondendo a cada mão
-    """
-    if self._cards:
-      return 1, self._cards[0]
-    return 1, None
-
-  def respond(self, top_card, play_hist, score_hist):
-    """Responde a pedidos de truco:
-    retorna 0 (correr), 1 (aceitar) ou 2 (aumentar)
-    """
-    return 0
-
-def pair_name():
-  return "algum nome"
-
-def create_pair():
-  return (NonePlayer(), NonePlayer())
-```
-
-
-## Critérios de Avaliação
-
-Os jogadores serão avaliados segundo os seguintes critérios:
-
-- **Funcionamento:** o agente joga seguindo as regras do simulador e não causa erros em partidas completas.
-- **Conformidade com a API:** não alterar assinaturas; implementar `play`, `respond`, `pair_name` e `create_pair` conforme esperado.
-- **Robustez:** o código deve tratar casos limites (mãos vazias, respostas inválidas) e não deve lançar exceções durante uma simulação padrão.
-- **Comportamento esperado:** a estratégia deve ser coerente e justificar-se por meio do histórico (`play_hist`).
-- **Qualidade do código e documentação:** clareza, nomes significativos e comentários mínimos explicando a estratégia.
-- **Execução:** o simulador deve rodar com sua dupla no modo terminal (`--speed 0`) e no modo gráfico sem alterações adicionais ao resto do código.
-
-## Regras sobre bibliotecas externas
-
-Não é permitido o uso de bibliotecas externas além das já incluídas no projeto. Ou seja, você deve usar apenas a biblioteca padrão do Python e as dependências já fornecidas (por exemplo, `pygame` para a interface gráfica). O uso de outras dependências externas não será aceito e pode resultar em desqualificação ou perda de pontos.
-
-Não modifique outros arquivos do projeto para integrar dependências externas; tudo deve estar contido em `student_players.py` e usar apenas os recursos já disponíveis no repositório.
-
-
-## 💡 Dicas para Melhorar Sua Estratégia
-
-1. **Analise o histórico**: Use `play_hist` para ver padrões dos jogos anteriores
-2. **Gerencie risco**: Nem sempre pedir truco é bom
-3. **Observe parceiros**: Veja o que seu parceiro já jogou
-4. **Estratégia adaptativa**: Ajuste sua tática baseado no placar
-5. **Cartas encobertas**: Use para criar incerteza
-
-**Divirta-se e bom jogo! 🎮**
+- `0`: execução sem visualização gráfica.
+- `1`: velocidade normal.
+- Maior que `1`: execução mais rápida.
+- Entre `0` e `1`: execução mais lenta.
